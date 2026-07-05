@@ -3,7 +3,9 @@ FROM rust:bookworm as builder
 LABEL authors="ben"
 
 WORKDIR /usr/src/app
-COPY . .
+
+
+COPY barber-api/ ./
 
 # Compile the application for release
 RUN cargo build --release

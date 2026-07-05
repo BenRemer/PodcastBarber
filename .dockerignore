@@ -1,0 +1,8 @@
+target/
+.git/
+.idea/
+downloads/
+barber-api/target/
+
+# Ignore Docker Compose files inside the container
+docker-compose.yml
