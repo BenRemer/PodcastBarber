@@ -7,7 +7,7 @@ use serde_json::json;
 
 #[derive(Debug)]
 pub enum AppError {
-    InvalidInput(String),
+    BadRequest(String),
     SidecarUnavailable,
     InternalServerError(String),
     NotFound,
@@ -17,7 +17,7 @@ pub enum AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {
-            AppError::InvalidInput(err) => {
+            AppError::BadRequest(err) => {
                 tracing::error!("Invalid input: {}", err);
                 (StatusCode::BAD_REQUEST, "Invalid input")
             },

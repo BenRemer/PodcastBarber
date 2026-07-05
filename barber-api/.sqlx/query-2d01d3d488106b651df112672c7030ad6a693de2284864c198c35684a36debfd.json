@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO podcasts (\n            id,\n            feed_url,\n            title,\n            image_url,\n            description,\n            author\n        )\n        VALUES (?, ?, ?, ?, ?, ?)\n        ON CONFLICT(id) DO UPDATE SET\n            title = excluded.title,\n            image_url = excluded.image_url,\n            description = excluded.description,\n            author = excluded.author\n        RETURNING\n            id as \"id!: uuid::Uuid\",\n            feed_url as \"feed_url!\",\n            title as \"title!\",\n            image_url,\n            description,\n            author\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: uuid::Uuid",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "podcasts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "feed_url!",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "podcasts",
+            "name": "feed_url"
+          }
+        }
+      },
+      {
+        "name": "title!",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "podcasts",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "name": "image_url",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "podcasts",
+            "name": "image_url"
+          }
+        }
+      },
+      {
+        "name": "description",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "podcasts",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "name": "author",
+        "ordinal": 5,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "podcasts",
+            "name": "author"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "2d01d3d488106b651df112672c7030ad6a693de2284864c198c35684a36debfd"
+}

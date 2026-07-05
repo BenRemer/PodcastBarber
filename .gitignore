@@ -5,6 +5,10 @@
 .cache/
 downloads/
 
+# Database
+*.db 
+*.sqlite 
+
 # =========================
 # Rust & Cargo
 # =========================

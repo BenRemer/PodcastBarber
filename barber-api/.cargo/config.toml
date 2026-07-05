@@ -1,0 +1,9 @@
+[alias]
+# Run with: cargo cx
+cx = "!cargo sqlx prepare && cargo check"
+
+# Run with: cargo bx
+bx = "!cargo sqlx prepare && cargo build"
+
+# Run with: cargo rx
+rx = "!cargo sqlx prepare && cargo run"

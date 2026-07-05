@@ -3,13 +3,27 @@
 # Define the cleanup function that runs when the script exits
 cleanup() {
   echo -e "\n[!] Caught exit signal. Stopping Docker containers..."
+
   docker compose down
-  echo "[✔] Containers stopped cleanly."
+
+  echo "[*] Pruning unused Docker resources..."
+
+  # Remove stopped containers, unused networks, and dangling images
+  docker system prune -f
+
+  # Remove build cache (this is often the biggest space hog)
+  docker builder prune -af
+
+  # OPTIONAL (more aggressive):
+  # Remove unused volumes (WARNING: can delete DB/data if not used by running containers)
+  # docker volume prune -f
+
+  echo "[✔] Cleanup complete."
   exit 0
 }
 
-# Trap SIGINT (Ctrl+C) and SIGTERM, and route them to the cleanup function
-trap cleanup SIGINT SIGTERM
+# Trap SIGINT (Ctrl+C) and SIGTERM
+trap cleanup SIGINT SIGTERM EXIT
 
 echo "[*] Building and starting Docker containers in the background..."
 docker compose up --build -d
@@ -21,8 +35,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "[*] Attaching to logs. Press Ctrl+C to stop and tear down."
-# Follow the logs natively
 docker compose logs -f
 
-# If the logs exit on their own (e.g., all containers crash), trigger cleanup
+# Fallback (usually not needed because of EXIT trap)
 cleanup

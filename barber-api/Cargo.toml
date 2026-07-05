@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# Database
+sqlx = { version = "0.9.0", features = [ "runtime-tokio", "tls-rustls", "sqlite", "uuid" ] }
+
 # Web Framework & Async
 axum = { version = "0.8.9", features = ["multipart", "macros"] }
 tokio = { version = "1.0", features = ["full"] }
@@ -14,7 +17,7 @@ rss = { version = "2.0", features = ["serde"] }
 reqwest = { version = "0.13.4", features = ["json", "multipart"] }
 
 sha2 = "0.11.0"
-uuid = { version = "1.23.4", features = ["v4"] }
+uuid = { version = "1.23.4", features = ["v4", "v5", "serde"] }
 hex = "0.4"
 
 # Serialization & Logging

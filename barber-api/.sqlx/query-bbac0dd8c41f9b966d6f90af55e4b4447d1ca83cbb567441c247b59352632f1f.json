@@ -1,0 +1,21 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COUNT(1) FROM podcasts WHERE feed_url = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "COUNT(1)",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bbac0dd8c41f9b966d6f90af55e4b4447d1ca83cbb567441c247b59352632f1f"
+}

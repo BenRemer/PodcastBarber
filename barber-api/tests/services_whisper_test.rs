@@ -1,6 +1,5 @@
 use reqwest::{multipart, Client, StatusCode};
 use serde_json::Value;
-use std::path::Path;
 use testcontainers::{
     core::{IntoContainerPort, WaitFor},
     runners::AsyncRunner,

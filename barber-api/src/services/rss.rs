@@ -1,26 +1,27 @@
 use reqwest::Client;
 use rss::{Channel, Item};
-use std::path::PathBuf;
-use std::sync::Arc;
 use crate::error::AppError;
-use crate::routes::rss::models::EpisodeItem;
-use crate::storage::manager::DownloadManager;
+use crate::models::{EpisodeItem, PodcastMetadata};
 
 #[derive(Clone)]
 pub struct RSSFeedService {
     client: Client,
-    download_manager: Arc<DownloadManager>
 }
 
 impl RSSFeedService {
-    pub fn new(download_manager: Arc<DownloadManager>) -> Self {
+    pub fn new() -> Self {
         Self {
             client: Client::new(),
-            download_manager
         }
     }
 
-    fn extract_metadata(item: &Item) -> Result<EpisodeItem, AppError> {
+    pub async fn fetch_podcast_metadata(&self, feed_url: &str) -> Result<PodcastMetadata, AppError> {
+        tracing::info!("Fetching feed {}", feed_url);
+        let channel = self.construct_rss_channel(feed_url).await?;
+        Ok(PodcastMetadata::from_channel(&channel, feed_url.to_string()))
+    }
+
+    pub(crate) fn extract_metadata(item: &Item) -> Result<EpisodeItem, AppError> {
         let title = item.title()
             .unwrap_or("Unknown Episode")
             .to_string();
@@ -56,7 +57,7 @@ impl RSSFeedService {
         })
     }
 
-    fn parse_rss_channel(xml_bytes: &[u8]) -> Result<Channel, AppError> {
+    pub(crate) fn parse_rss_channel(xml_bytes: &[u8]) -> Result<Channel, AppError> {
         Channel::read_from(xml_bytes)
             .map_err(|e| {
                 println!("!!! RSS PARSING CRASHED BECAUSE: {:#?} !!!", e);
@@ -78,7 +79,7 @@ impl RSSFeedService {
             .map_err(|_| AppError::InternalServerError("Failed to read XML payload".into()))
     }
 
-    async fn construct_rss_channel(&self, feed_url: &str) -> Result<Channel, AppError> {
+    pub async fn construct_rss_channel(&self, feed_url: &str) -> Result<Channel, AppError> {
         let bytes = self.fetch_rss_bytes(feed_url).await?;
         Self::parse_rss_channel(&bytes)
     }
@@ -97,55 +98,6 @@ impl RSSFeedService {
             .collect();
 
         Ok(items)
-    }
-
-    pub async fn download_episode(
-        &self, feed_url: &str, guid: &str
-    ) -> Result<PathBuf, AppError> {
-        let channel = self.construct_rss_channel(feed_url).await?;
-
-        let podcast_name = channel.title().to_string();
-        let metadata = channel.items()
-            .iter()
-            .find_map(|item| {
-                match Self::extract_metadata(item) {
-                    Ok(meta) if meta.guid == guid => Some(meta),
-                    _ => None,
-                }
-            })
-            .ok_or_else(|| {
-                tracing::warn!("Episode with ID {} not found in feed", guid);
-                AppError::NotFound
-            })?;
-
-        self.download_manager
-            .download_to_path(&self.client, &metadata.audio_url, &podcast_name, &metadata.guid)
-            .await
-    }
-
-    // Fetches the feed, finds the newest episode, and streams the MP3 to disk
-    pub async fn download_latest_episode(
-        &self, feed_url: &str
-    ) -> Result<PathBuf, AppError> {
-        tracing::info!("Fetching RSS feed from: {}", feed_url);
-
-        let channel = self.construct_rss_channel(feed_url).await?;
-        let podcast_name = channel.title().to_string();
-
-        let latest_item = channel.items().first()
-            .ok_or_else(|| AppError::InternalServerError("No episodes found in feed".into()))?;
-
-        let metadata = Self::extract_metadata(latest_item).map_err(|e| {
-            tracing::warn!("No episodes found in feed: {:?}", e);
-            AppError::NotFound
-        })?;
-
-        let file_path = self.download_manager
-            .download_to_path(&self.client, &metadata.audio_url, &podcast_name, &metadata.guid)
-            .await
-            .map_err(|_| AppError::InternalServerError("Failed to download audio".into()))?;
-
-        Ok(file_path)
     }
 }
 
