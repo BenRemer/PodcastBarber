@@ -17,7 +17,7 @@ services:
 
   barber-api:
     build:
-      context: ./barber-api
+      context: .
       dockerfile: Dockerfile
     container_name: barber-api
     ports:
@@ -27,5 +27,6 @@ services:
     depends_on:
       - whisper-sidecar
     environment:
+      - BASE_DOWNLOAD_PATH=/app/downloads
       - WHISPER_BASE_URL=http://whisper_sidecar:8000/v1
       - RUST_LOG=info

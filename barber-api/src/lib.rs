@@ -1,11 +1,10 @@
 use std::path::PathBuf;
-use std::sync::Arc;
 use axum::Router;
 use tower_http::trace::TraceLayer;
 use crate::state::AppState;
 use crate::constants::{BASE_DOWNLOAD_PATH, DEFAULT_WHISPER_URL};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use crate::storage::download_manager::DownloadManager;
+use crate::storage::manager::DownloadManager;
 
 pub mod error;
 pub mod routes;
@@ -14,6 +13,7 @@ pub mod services;
 pub mod constants;
 pub mod extractors;
 pub mod storage;
+pub mod utils;
 
 pub async fn run() {
     tracing_subscriber::registry()

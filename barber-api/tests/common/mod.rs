@@ -1,16 +1,14 @@
 use std::sync::Arc;
-use barber_api::services::rss_feed::RSSFeedService;
-use barber_api::storage::download_manager::DownloadManager;
-use tempfile::{tempdir, TempDir};
+use barber_api::services::rss::RSSFeedService;
+use barber_api::storage::manager::DownloadManager;
+use tempfile::tempdir;
 use wiremock::{Mock, MockServer, ResponseTemplate};
 use wiremock::matchers::{method, path};
 use crate::common;
 
 pub struct TestContext {
-    pub service: RSSFeedService,
+    pub feed_service: RSSFeedService,
     pub mock_server: MockServer,
-    pub temp_dir: TempDir,
-    pub download_manager: Arc<DownloadManager>,
 }
 
 impl TestContext {
@@ -19,17 +17,11 @@ impl TestContext {
         let download_manager = Arc::new(DownloadManager::new(
             temp_dir.path().to_path_buf()
         ));
-        let service = RSSFeedService::new(Arc::clone(&download_manager));
+        let feed_service = RSSFeedService::new(Arc::clone(&download_manager));
         Self {
-            service,
+            feed_service,
             mock_server: MockServer::start().await,
-            temp_dir,
-            download_manager,
         }
-    }
-
-    pub fn output_path(&self) -> &str {
-        self.temp_dir.path().to_str().unwrap()
     }
 
     pub async fn create_xml_feed_url(&self, asset_name: &str) -> String {

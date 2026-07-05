@@ -7,13 +7,15 @@ pub struct DownloadManager {
 }
 
 impl DownloadManager {
+    const PODCAST_DIR: &str = "podcast";
+
     pub fn new(base_dir: PathBuf) -> Self {
         Self { base_dir }
     }
 
     // Sanitizes a string for use as a folder name
     fn sanitize_name(&self, name: &str) -> String {
-        name.replace(|c: char| !c.is_alphanumeric() && c != ' ', "_")
+        name.replace(|c: char| !c.is_alphanumeric() && c != ' ', "_") // todo do i want spaces
             .trim()
             .to_string()
     }
@@ -23,7 +25,7 @@ impl DownloadManager {
         &self, podcast_name: &str, episode_guid: &str
     )-> Result<PathBuf, std::io::Error> {
         let folder_name = self.sanitize_name(podcast_name);
-        let podcast_dir = self.base_dir.join(folder_name);
+        let podcast_dir = self.base_dir.join(Self::PODCAST_DIR).join(folder_name);
 
         // Create the podcast-specific folder if it doesn't exist
         if !podcast_dir.exists() {
@@ -46,6 +48,12 @@ impl DownloadManager {
                 tracing::error!("Storage error: {:?}", e);
                 AppError::InternalServerError("Failed to prepare storage".into())
             })?;
+
+        // if file already exists return it
+        if output_path.exists() {
+            tracing::info!("Episode already downloaded.");
+            return Ok(output_path);
+        }
 
         // Fetch and Stream
         let mut response = client.get(audio_url).send().await

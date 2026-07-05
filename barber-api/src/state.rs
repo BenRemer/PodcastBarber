@@ -1,7 +1,7 @@
 use std::sync::Arc;
-use crate::services::rss_feed::RSSFeedService;
+use crate::services::rss::RSSFeedService;
 use crate::services::whisper::WhisperService;
-use crate::storage::download_manager::DownloadManager;
+use crate::storage::manager::DownloadManager;
 
 #[derive(Clone)]
 pub struct AppState {
