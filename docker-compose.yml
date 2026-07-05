@@ -1,0 +1,31 @@
+services:
+  whisper-sidecar:
+    image: fedirz/faster-whisper-server:latest-cuda
+    container_name: whisper_sidecar
+    environment:
+      # You can bump this to 'large-v3' in production.
+      - WHISPER__MODEL=base 
+    volumes:
+      - ./.cache/huggingface:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  barber-api:
+    build:
+      context: ./barber-api
+      dockerfile: Dockerfile
+    container_name: barber-api
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./downloads:/app/downloads
+    depends_on:
+      - whisper-sidecar
+    environment:
+      - WHISPER_BASE_URL=http://whisper_sidecar:8000/v1
+      - RUST_LOG=info
