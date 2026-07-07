@@ -1,6 +1,7 @@
 use std::str::FromStr;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::SqlitePool;
+use crate::storage::repository::episode::EpisodeRepository;
 use crate::storage::repository::podcast::PodcastRepository;
 
 pub struct Database {
@@ -21,5 +22,9 @@ impl Database {
 
     pub fn podcast_repository(&self) -> PodcastRepository {
         PodcastRepository::new(self.pool.clone())
+    }
+
+    pub fn episode_repository(&self) -> EpisodeRepository {
+        EpisodeRepository::new(self.pool.clone())
     }
 }

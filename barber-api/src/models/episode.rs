@@ -12,7 +12,7 @@ pub enum EpisodeState {
     Error,
 }
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, Serialize, PartialEq, Clone)]
 pub struct Episode {
     pub id: Uuid,
     pub podcast_id: Uuid,

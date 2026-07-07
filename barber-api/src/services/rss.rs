@@ -10,9 +10,9 @@ pub struct RSSFeedService {
 }
 
 impl RSSFeedService {
-    pub fn new() -> Self {
+    pub fn new(client: Client) -> Self {
         Self {
-            client: Client::new(),
+            client,
         }
     }
 
@@ -90,7 +90,7 @@ impl RSSFeedService {
     ) -> Result<Vec<EpisodeItem>, AppError> {
         tracing::info!("Listing {} episodes of {}", limit, feed_url);
 
-        let channel = self.construct_rss_channel(feed_url).await?;
+        let channel = self.construct_rss_channel(feed_url).await?; // todo pass in
 
         let items: Vec<EpisodeItem> = channel.items
             .iter()
@@ -99,6 +99,25 @@ impl RSSFeedService {
             .collect();
 
         Ok(items)
+    }
+
+    pub async fn get_episode_metadata(
+        &self, channel: &Channel, feed_url: &str, guid: &str
+    ) -> Result<EpisodeItem, AppError> {
+        tracing::info!("Fetching episode {} from {}", guid, feed_url);
+
+        channel.items()
+            .iter()
+            .find_map(|item| {
+                match Self::extract_metadata(item) {
+                    Ok(meta) if meta.guid == guid => Some(meta),
+                    _ => None,
+                }
+            })
+            .ok_or_else(|| {
+                tracing::warn!("Episode with GUID '{}' not found in RSS feed", guid);
+                AppError::NotFound
+            })
     }
 }
 

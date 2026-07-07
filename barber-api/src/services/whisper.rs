@@ -8,9 +8,9 @@ pub struct WhisperService {
 }
 
 impl WhisperService {
-    pub fn new(base_url: String) -> Self {
+    pub fn new(base_url: String, client: Client) -> Self {
         Self {
-            client: Client::new(),
+            client,
             base_url,
         }
     }

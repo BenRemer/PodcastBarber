@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT\n                id as \"id!: uuid::Uuid\",\n                feed_url as \"feed_url!\",\n                title as \"title!\",\n                image_url,\n                description,\n                author\n            FROM podcasts\n            ORDER BY title\n            ",
+  "query": "\n            SELECT\n                id as \"id!: uuid::Uuid\",\n                feed_url as \"feed_url!\",\n                title as \"title!\",\n                image_url,\n                description,\n                author\n            FROM podcast\n            ORDER BY title\n            ",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcasts",
+            "table": "podcast",
             "name": "id"
           }
         }
@@ -20,7 +20,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcasts",
+            "table": "podcast",
             "name": "feed_url"
           }
         }
@@ -31,7 +31,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcasts",
+            "table": "podcast",
             "name": "title"
           }
         }
@@ -42,7 +42,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcasts",
+            "table": "podcast",
             "name": "image_url"
           }
         }
@@ -53,7 +53,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcasts",
+            "table": "podcast",
             "name": "description"
           }
         }
@@ -64,7 +64,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcasts",
+            "table": "podcast",
             "name": "author"
           }
         }
@@ -82,5 +82,5 @@
       true
     ]
   },
-  "hash": "19edf674f23a4e5ea3459a72d320db2e98be3aacdb45076e83f5a3b799114a59"
+  "hash": "f306ae815fa222eee6f8af16ab9eb46760171d1a1bf47ffa8618bc152ab8d589"
 }

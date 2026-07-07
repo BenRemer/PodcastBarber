@@ -1,4 +1,5 @@
 use sqlx::SqlitePool;
+use uuid::Uuid;
 use crate::error::AppError;
 use crate::models::podcast::Podcast;
 
@@ -77,16 +78,57 @@ impl PodcastRepository {
             .await
             .map_err(|e| {
                 tracing::error!("DB get_all failed: {}", e);
-                AppError::InternalServerError("Failed to fetch podcasts".into())
+                AppError::InternalServerError("Failed to fetch podcast".into())
             })?;
 
         Ok(podcasts)
+    }
+
+    pub async fn get_podcast_by_id(&self, id: &Uuid) -> Result<Option<Podcast>, AppError> {
+        let podcast = sqlx::query_as!(
+            Podcast,
+            r#"
+            SELECT
+                id as "id!: uuid::Uuid",
+                feed_url as "feed_url!",
+                title as "title!",
+                image_url,
+                description,
+                author
+            FROM podcasts
+            WHERE id = ?
+            "#,
+            id
+        )
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| {
+                tracing::error!("DB get_all failed: {}", e);
+                AppError::InternalServerError("Failed to fetch podcast".into())
+            })?;
+
+        Ok(podcast)
     }
 
     pub async fn is_subscribed_feed(&self, feed_url: &str) -> Result<bool, AppError> {
         let count = sqlx::query_scalar!(
             "SELECT COUNT(1) FROM podcasts WHERE feed_url = ?",
             feed_url
+        )
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| {
+                tracing::error!("DB exists check failed: {}", e);
+                AppError::InternalServerError("Failed to check subscription status".into())
+            })?;
+
+        Ok(count > 0)
+    }
+
+    pub async fn is_subscribed_id(&self, id: &Uuid) -> Result<bool, AppError> {
+        let count = sqlx::query_scalar!(
+            "SELECT COUNT(1) FROM podcasts WHERE id = ?",
+            id
         )
             .fetch_one(&self.pool)
             .await

@@ -1,10 +1,8 @@
-use std::path::PathBuf;
 use axum::Router;
 use tower_http::trace::TraceLayer;
 use crate::state::AppState;
 use crate::constants::{BASE_DOWNLOAD_PATH, DATABASE_URL, DEFAULT_WHISPER_URL};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use crate::storage::manager::DownloadManager;
 use crate::storage::database::Database;
 
 pub mod error;
@@ -37,9 +35,7 @@ pub async fn run() {
     let db = Database::connect(&database_url).await.expect("Failed connectin to database");
     sqlx::migrate!("./migrations").run(&db.pool).await.expect("Failed migrate from database");
 
-
-    let download_manager = DownloadManager::new(PathBuf::from(base_download_path));
-    let state = AppState::new(db, download_manager, whisper_url);
+    let state = AppState::new(db, base_download_path, whisper_url);
 
     let app = Router::new()
         .nest("/api", routes::api_router(state))

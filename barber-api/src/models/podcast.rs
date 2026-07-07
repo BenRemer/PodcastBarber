@@ -1,6 +1,7 @@
 use rss::Channel;
 use serde::Serialize;
 use uuid::Uuid;
+use crate::utils::generate_podcast_uuid;
 
 pub struct PodcastMetadata {
     pub title: String,
@@ -24,7 +25,7 @@ impl PodcastMetadata {
     }
 }
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, Serialize, PartialEq, Clone)]
 pub struct Podcast {
     pub id: Uuid,
     pub title: String,
@@ -37,7 +38,7 @@ pub struct Podcast {
 
 impl From<PodcastMetadata> for Podcast {
     fn from(metadata: PodcastMetadata) -> Self {
-        let deterministic_id = Uuid::new_v5(&Uuid::NAMESPACE_URL, metadata.feed_url.as_bytes());
+        let deterministic_id = generate_podcast_uuid(&metadata.feed_url);
         Self {
             id: deterministic_id,
             title: metadata.title,

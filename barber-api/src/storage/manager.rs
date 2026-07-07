@@ -1,16 +1,18 @@
 use std::path::PathBuf;
+use reqwest::Client;
 use crate::error::AppError;
 
 #[derive(Clone)]
 pub struct DownloadManager {
     base_dir: PathBuf,
+    client: Client
 }
 
 impl DownloadManager {
     const PODCAST_DIR: &str = "podcast";
 
-    pub fn new(base_dir: PathBuf) -> Self {
-        Self { base_dir }
+    pub fn new(base_dir: PathBuf, client: Client) -> Self {
+        Self { base_dir, client }
     }
 
     // Sanitizes a string for use as a folder name
@@ -37,7 +39,6 @@ impl DownloadManager {
 
     pub async fn download_to_path(
         &self,
-        client: &reqwest::Client,
         audio_url: &str,
         podcast_name: &str,
         guid: &str,
@@ -56,9 +57,12 @@ impl DownloadManager {
         }
 
         // Fetch and Stream
-        let mut response = client.get(audio_url).send().await
+        let mut response = self.client
+            .get(audio_url)
+            .send()
+            .await
             .map_err(|e| {
-                tracing::error!("Failed to start download: {}", e);
+                tracing::error!("Failed to download {}: {:?}", audio_url, e);
                 AppError::InternalServerError("Audio download failed".into())
             })?;
 
