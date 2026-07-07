@@ -1,7 +1,8 @@
 use reqwest::Client;
 use rss::{Channel, Item};
 use crate::error::AppError;
-use crate::models::{EpisodeItem, PodcastMetadata};
+use crate::models::api::EpisodeItem;
+use crate::models::podcast::PodcastMetadata;
 
 #[derive(Clone)]
 pub struct RSSFeedService {

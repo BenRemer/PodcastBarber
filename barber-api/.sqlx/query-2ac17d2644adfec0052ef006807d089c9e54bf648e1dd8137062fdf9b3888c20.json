@@ -1,0 +1,98 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO episodes (\n                id, podcast_id, guid, title, audio_url, local_file_path, state\n            )\n            VALUES (?, ?, ?, ?, ?, ?, ?)\n            ON CONFLICT(podcast_id, guid) DO UPDATE SET\n                title = excluded.title,\n                audio_url = excluded.audio_url,\n                local_file_path = excluded.local_file_path,\n                state = excluded.state\n            RETURNING\n                id as \"id!: uuid::Uuid\",\n                podcast_id as \"podcast_id!: uuid::Uuid\",\n                guid as \"guid!\",\n                title as \"title!\",\n                audio_url as \"audio_url!\",\n                local_file_path,\n                state as \"state!: EpisodeState\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: uuid::Uuid",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "episodes",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "podcast_id!: uuid::Uuid",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "episodes",
+            "name": "podcast_id"
+          }
+        }
+      },
+      {
+        "name": "guid!",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "episodes",
+            "name": "guid"
+          }
+        }
+      },
+      {
+        "name": "title!",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "episodes",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "name": "audio_url!",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "episodes",
+            "name": "audio_url"
+          }
+        }
+      },
+      {
+        "name": "local_file_path",
+        "ordinal": 5,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "episodes",
+            "name": "local_file_path"
+          }
+        }
+      },
+      {
+        "name": "state!: EpisodeState",
+        "ordinal": 6,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "episodes",
+            "name": "state"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "2ac17d2644adfec0052ef006807d089c9e54bf648e1dd8137062fdf9b3888c20"
+}

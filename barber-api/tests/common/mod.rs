@@ -3,7 +3,7 @@ use sqlx::SqlitePool;
 use barber_api::services::rss::RSSFeedService;
 use barber_api::services::podcast::PodcastService;
 use barber_api::storage::manager::DownloadManager;
-use barber_api::storage::repository::PodcastRepository;
+use barber_api::storage::repository::podcast::PodcastRepository;
 use tempfile::tempdir;
 use wiremock::{Mock, MockServer, ResponseTemplate};
 use wiremock::matchers::{method, path};

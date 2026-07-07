@@ -1,4 +1,4 @@
-use barber_api::models::Podcast;
+use barber_api::models::podcast::Podcast;
 use crate::common::TestContext;
 
 

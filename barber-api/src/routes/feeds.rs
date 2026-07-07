@@ -1,7 +1,7 @@
 use axum::{extract::State, Json};
 use serde::Deserialize;
 use crate::{state::AppState, error::AppError};
-use crate::models::EpisodesResponse;
+use crate::models::api::EpisodesResponse;
 
 #[derive(Deserialize)]
 pub struct FeedRequest {
@@ -11,7 +11,7 @@ pub struct FeedRequest {
 }
 
 pub async fn list_episodes(
-    state: State<AppState>,
+    State(state): State<AppState>,
     Json(payload): Json<FeedRequest>,
 ) -> Result<Json<EpisodesResponse>, AppError> {
     let size = payload.size.unwrap_or(20);

@@ -2,10 +2,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use reqwest::Client;
 use crate::error::AppError;
-use crate::models::Podcast;
+use crate::models::podcast::Podcast;
 use crate::services::rss::RSSFeedService;
 use crate::storage::manager::DownloadManager;
-use crate::storage::repository::PodcastRepository;
+use crate::storage::repository::podcast::PodcastRepository;
 
 #[derive(Clone)]
 pub struct PodcastService {
@@ -27,6 +27,10 @@ impl PodcastService {
         }
     }
 
+    pub async fn list_podcasts(&self) -> Result<Vec<Podcast>, AppError> {
+        self.podcast_repository.get_all().await
+    }
+
     pub async fn subscribe_podcast(
         &self, feed_url: &str
     ) -> Result<Podcast, AppError> {
@@ -39,6 +43,7 @@ impl PodcastService {
         self.podcast_repository.is_subscribed_feed(feed_url).await
     }
 
+    // todo move to episode
     pub async fn download_episode(
         &self, feed_url: &str, guid: &str
     ) -> Result<PathBuf, AppError> {

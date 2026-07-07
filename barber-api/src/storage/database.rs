@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::SqlitePool;
-use crate::storage::repository::PodcastRepository;
+use crate::storage::repository::podcast::PodcastRepository;
 
 pub struct Database {
     pub pool: SqlitePool,

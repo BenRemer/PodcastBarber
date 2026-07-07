@@ -1,6 +1,6 @@
 use sqlx::SqlitePool;
 use crate::error::AppError;
-use crate::models::Podcast;
+use crate::models::podcast::Podcast;
 
 #[derive(Clone)]
 pub struct PodcastRepository {
@@ -56,6 +56,31 @@ impl PodcastRepository {
             })?;
 
         Ok(row)
+    }
+
+    pub async fn get_all(&self) -> Result<Vec<Podcast>, AppError> {
+        let podcasts = sqlx::query_as!(
+            Podcast,
+            r#"
+            SELECT
+                id as "id!: uuid::Uuid",
+                feed_url as "feed_url!",
+                title as "title!",
+                image_url,
+                description,
+                author
+            FROM podcasts
+            ORDER BY title
+            "#
+        )
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| {
+                tracing::error!("DB get_all failed: {}", e);
+                AppError::InternalServerError("Failed to fetch podcasts".into())
+            })?;
+
+        Ok(podcasts)
     }
 
     pub async fn is_subscribed_feed(&self, feed_url: &str) -> Result<bool, AppError> {
