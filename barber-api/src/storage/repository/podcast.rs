@@ -13,7 +13,7 @@ impl PodcastRepository {
         Self { pool }
     }
 
-    pub async fn insert(
+    pub async fn upsert(
         &self,
         podcast: Podcast,
     ) -> Result<Podcast, AppError> {

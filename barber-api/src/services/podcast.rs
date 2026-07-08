@@ -23,7 +23,7 @@ impl PodcastService {
     pub async fn subscribe_podcast(
         &self, podcast: Podcast
     ) -> Result<Podcast, AppError> {
-        self.podcast_repository.insert(podcast).await
+        self.podcast_repository.upsert(podcast).await
     }
 
     pub async fn is_subscribed_by_url(&self, feed_url: &str) -> Result<bool, AppError> {
