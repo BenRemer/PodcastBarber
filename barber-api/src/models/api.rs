@@ -31,16 +31,17 @@ impl EpisodeItem {
     }
 }
 
+// todo clean up locations(should they be in this file)
 #[derive(Deserialize)]
 pub struct PodcastRequest {
     pub feed_url: String,
-    pub guid: Option<String>,
-    pub size: Option<usize>,
+    // pub guid: Option<String>,
+    // pub size: Option<usize>,
 }
 
 #[derive(Deserialize)]
 pub struct EpisodeRequest {
-    pub feed_url: String,
+    // pub feed_url: String,
     pub guid: Option<String>,
-    pub size: Option<usize>,
+    // pub size: Option<usize>,
 }

@@ -165,7 +165,6 @@ mod tests {
 
         let result = RSSFeedService::extract_metadata(&item).expect("Should succeed");
 
-        // We know from your fallback logic that it should hash the enclosure URL
         let expected_hash = crate::utils::generate_deterministic_hash("https://example.com/audio.mp3");
 
         assert_eq!(result.guid, expected_hash);

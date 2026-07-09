@@ -58,7 +58,7 @@ impl EpisodeRepository {
 
     pub async fn get(
         &self,
-        uid: Uuid
+        uid: &Uuid
     ) -> Result<Option<Episode>, AppError> {
         let episode = sqlx::query_as!(
             Episode,

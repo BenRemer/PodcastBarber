@@ -5,9 +5,9 @@ use sqlx::SqlitePool;
 use barber_api::services::rss::RSSFeedService;
 use barber_api::services::podcast::PodcastService;
 use barber_api::services::episode::EpisodeService;
-use barber_api::storage::manager::DownloadManager;
+use barber_api::storage::download::{DownloadManager, DownloadResult};
 use barber_api::storage::repository::podcast::PodcastRepository;
-use tempfile::tempdir;
+use tokio::sync::mpsc;
 use uuid::Uuid;
 use wiremock::{Mock, MockServer, ResponseTemplate};
 use wiremock::matchers::{method, path};
@@ -32,6 +32,12 @@ impl TestContext {
     const AUDIO_NAME: &'static str = "audio";
 
     pub async fn setup() -> Self {
+        // EXTERNAL INFRASTRUCTURE (Network, Disk, DB)
+        let mock_server = MockServer::start().await;
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp directory");
+        let http_client = reqwest::Client::new();
+
+        // DB
         let pool = sqlx::sqlite::SqlitePoolOptions::new()
             .connect("sqlite::memory:")
             .await
@@ -40,21 +46,40 @@ impl TestContext {
         let podcast_repository = PodcastRepository::new(pool.clone());
         let episode_repository = EpisodeRepository::new(pool.clone());
 
-        let http_client = reqwest::Client::new();
+        // BACKGROUND WORKERS & CHANNELS
+        let (result_tx, result_rx) = mpsc::channel::<DownloadResult>(100);
 
-        let temp_dir = tempdir().expect("Failed to create temp directory");
-        let download_manager = Arc::new(DownloadManager::new(
-            temp_dir.path().to_path_buf(), http_client.clone()
-        ));
+        let (manager_handle, manager_worker) = DownloadManager::new(
+            temp_dir.path().to_path_buf(),
+            http_client.clone(),
+            result_tx,
+            100
+        );
+        let download_manager = Arc::new(manager_handle);
 
+        // SERVICES
         let rss_service = RSSFeedService::new(http_client.clone());
         let podcast_service = PodcastService::new(podcast_repository.clone());
-        let episode_service = EpisodeService::new(episode_repository.clone(), download_manager.clone());
+        let (episode_service, episode_worker) = EpisodeService::new(
+            episode_repository.clone(),
+            download_manager.clone(),
+            result_rx
+        );
+
+        // START WORKERS
+        tokio::spawn(async move {
+            manager_worker.run().await;
+        });
+        tokio::spawn(async move {
+            episode_worker.run().await;
+        });
+
+        // RETURN ASSEMBLED CONTEXT
         Self {
             episode_service,
             podcast_service,
             rss_service,
-            mock_server: MockServer::start().await,
+            mock_server,
             pool,
             podcast_repository,
             episode_repository,

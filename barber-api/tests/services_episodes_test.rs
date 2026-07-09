@@ -50,7 +50,7 @@ async fn test_queue_episode_download() {
 
     let final_episode = ctx
         .episode_service
-        .get(saved_episode.id)
+        .get(&saved_episode.id)
         .await
         .unwrap()
         .expect("Episode row with no existing episode");
@@ -95,7 +95,7 @@ async fn test_get_episode() {
     let episode = episodes.pop().expect("no episodes");
 
     let saved_episode = ctx.episode_service
-        .get(episode.id)
+        .get(&episode.id)
         .await
         .expect("Database connection failed")
         .expect("Episode row with no existing episode");

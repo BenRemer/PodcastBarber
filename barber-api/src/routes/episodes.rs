@@ -14,8 +14,8 @@ pub fn episodes_router() -> Router<AppState> {
 }
 
 pub async fn list_saved_episodes(
-    State(state): State<AppState>,
-    Path(podcast_id): Path<Uuid>,
+    // State(state): State<AppState>,
+    // Path(podcast_id): Path<Uuid>,
 ) -> Result<Json<Value>, AppError> {
     unimplemented!()
 }
