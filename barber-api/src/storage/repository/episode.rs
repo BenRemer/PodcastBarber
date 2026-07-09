@@ -1,4 +1,5 @@
 use sqlx::SqlitePool;
+use uuid::Uuid;
 use crate::error::AppError;
 use crate::models::episode::{Episode, EpisodeState};
 
@@ -12,7 +13,10 @@ impl EpisodeRepository {
         Self { pool }
     }
 
-    pub async fn upsert(&self, episode: Episode) -> Result<Episode, AppError> {
+    pub async fn upsert(
+        &self,
+        episode: Episode
+    ) -> Result<Episode, AppError> {
         let row = sqlx::query_as!(
             Episode,
             r#"
@@ -26,8 +30,8 @@ impl EpisodeRepository {
                 local_file_path = excluded.local_file_path,
                 state = excluded.state
             RETURNING
-                id as "id!: uuid::Uuid",
-                podcast_id as "podcast_id!: uuid::Uuid",
+                id as "id!: Uuid",
+                podcast_id as "podcast_id!: Uuid",
                 guid as "guid!",
                 title as "title!",
                 audio_url as "audio_url!",
@@ -46,19 +50,22 @@ impl EpisodeRepository {
             .await
             .map_err(|e| {
                 tracing::error!("DB upsert failed for episode: {}", e);
-                AppError::InternalServerError("Failed to save episode".into())
+                AppError::InternalServerError("Failed to save episode to database".into())
             })?;
 
         Ok(row)
     }
 
-    pub async fn get(&self, uid: uuid::Uuid) -> Result<Option<Episode>, AppError> {
+    pub async fn get(
+        &self,
+        uid: Uuid
+    ) -> Result<Option<Episode>, AppError> {
         let episode = sqlx::query_as!(
             Episode,
             r#"
             SELECT
-                id as "id!: uuid::Uuid",
-                podcast_id as "podcast_id!: uuid::Uuid",
+                id as "id!: Uuid",
+                podcast_id as "podcast_id!: Uuid",
                 guid as "guid!",
                 title as "title!",
                 audio_url as "audio_url!",
@@ -79,13 +86,16 @@ impl EpisodeRepository {
         Ok(episode)
     }
 
-    pub async fn get_by_podcast_id(&self, podcast_id: uuid::Uuid) -> Result<Vec<Episode>, AppError> {
+    pub async fn get_by_podcast_id(
+        &self,
+        podcast_id: &Uuid
+    ) -> Result<Vec<Episode>, AppError> {
         let episodes = sqlx::query_as!(
             Episode,
             r#"
             SELECT
-                id as "id!: uuid::Uuid",
-                podcast_id as "podcast_id!: uuid::Uuid",
+                id as "id!: Uuid",
+                podcast_id as "podcast_id!: Uuid",
                 guid as "guid!",
                 title as "title!",
                 audio_url as "audio_url!",
@@ -107,13 +117,17 @@ impl EpisodeRepository {
         Ok(episodes)
     }
 
-    pub async fn get_by_guid(&self, podcast_id: uuid::Uuid, guid: &str) -> Result<Option<Episode>, AppError> {
+    pub async fn get_by_guid(
+        &self,
+        podcast_id: &Uuid,
+        guid: &str
+    ) -> Result<Option<Episode>, AppError> {
         let episode = sqlx::query_as!(
             Episode,
             r#"
             SELECT
-                id as "id!: uuid::Uuid",
-                podcast_id as "podcast_id!: uuid::Uuid",
+                id as "id!: Uuid",
+                podcast_id as "podcast_id!: Uuid",
                 guid as "guid!",
                 title as "title!",
                 audio_url as "audio_url!",

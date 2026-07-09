@@ -24,6 +24,13 @@ impl EpisodeService {
         self.episode_repository.get(id).await
     }
 
+    pub async fn get_episodes_by_podcast(
+        &self,
+        podcast_id: &Uuid
+    ) -> Result<Vec<Episode>, AppError> {
+        self.episode_repository.get_by_podcast_id(podcast_id).await
+    }
+
     pub async fn queue_episode_download(
         &self, podcast: Podcast, episode: Episode
     ) -> Result<Episode, AppError> {
@@ -36,9 +43,9 @@ impl EpisodeService {
 
         let mut processing_episode = saved_episode.clone();
 
+        // spawn task to download async
         tokio::spawn(async move {
             // processing_episode.state = EpisodeState::Processing;
-            // let _ = episode_repo.upsert(processing_episode.clone()).await;
             if let Err(e) = episode_repo.upsert(processing_episode.clone()).await {
                 tracing::error!("Failed to update processing state: {:?}", e);
             }
@@ -53,7 +60,6 @@ impl EpisodeService {
                     processing_episode.local_file_path = Some(path.to_string_lossy().into_owned());
 
                     // Final database update to mark completion
-                    // let _ = episode_repo.upsert(processing_episode).await;
                     match episode_repo.upsert(processing_episode).await {
                         Ok(_) => tracing::info!("Episode updated successfully"),
                         Err(e) => tracing::error!("Failed to update episode: {:?}", e),
@@ -64,7 +70,6 @@ impl EpisodeService {
                     processing_episode.state = EpisodeState::Error;
 
                     // Update database to reflect the failure
-                    // let _ = episode_repo.upsert(processing_episode).await;
                     match episode_repo.upsert(processing_episode).await {
                         Ok(_) => tracing::info!("Episode updated successfully"),
                         Err(e) => tracing::error!("Failed to update episode: {:?}", e),

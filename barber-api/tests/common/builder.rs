@@ -37,12 +37,12 @@ impl<'a> PodcastFixtureBuilder<'a> {
     }
 
     pub async fn build(self) -> (Podcast, Vec<Episode>) {
-        let mut podcast = self.ctx.create_subscribed_podcast(
+        let mut podcast = self.ctx.create_podcast(
             self.title.as_deref(),
             self.feed_url.as_deref()
         ).await;
 
-        if self.auto_subscribe {
+        if self.auto_subscribe || self.with_episodes > 0 {
             podcast = self.ctx.podcast_service.subscribe_podcast(podcast).await.unwrap();
         }
 

@@ -84,7 +84,10 @@ impl PodcastRepository {
         Ok(podcasts)
     }
 
-    pub async fn get_podcast_by_id(&self, id: &Uuid) -> Result<Option<Podcast>, AppError> {
+    pub async fn get_podcast_by_id(
+        &self,
+        id: &Uuid
+    ) -> Result<Option<Podcast>, AppError> {
         let podcast = sqlx::query_as!(
             Podcast,
             r#"
@@ -110,7 +113,10 @@ impl PodcastRepository {
         Ok(podcast)
     }
 
-    pub async fn is_subscribed_feed(&self, feed_url: &str) -> Result<bool, AppError> {
+    pub async fn is_subscribed_feed(
+        &self,
+        feed_url: &str
+    ) -> Result<bool, AppError> {
         let count = sqlx::query_scalar!(
             "SELECT COUNT(1) FROM podcasts WHERE feed_url = ?",
             feed_url
@@ -125,7 +131,10 @@ impl PodcastRepository {
         Ok(count > 0)
     }
 
-    pub async fn is_subscribed_id(&self, id: &Uuid) -> Result<bool, AppError> {
+    pub async fn is_subscribed_id(
+        &self,
+        id: &Uuid
+    ) -> Result<bool, AppError> {
         let count = sqlx::query_scalar!(
             "SELECT COUNT(1) FROM podcasts WHERE id = ?",
             id

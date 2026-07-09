@@ -5,7 +5,7 @@ use crate::common::builder::PodcastFixtureBuilder;
 mod common;
 
 #[tokio::test]
-async fn test_save_episode() {
+async fn test_queue_episode_download() {
     let ctx = TestContext::setup().await;
     let (podcast, mut episodes) = PodcastFixtureBuilder::new(&ctx)
         .subscribed()
@@ -81,4 +81,38 @@ async fn test_save_nonexistent_episode() {
         .await;
 
     assert!(failure.is_err());
+}
+
+#[tokio::test]
+async fn test_get_episode() {
+    let ctx = TestContext::setup().await;
+    let (podcast, mut episodes) = PodcastFixtureBuilder::new(&ctx)
+        .subscribed()
+        .with_episodes(2)
+        .build()
+        .await;
+
+    let episode = episodes.pop().expect("no episodes");
+
+    let saved_episode = ctx.episode_service
+        .get(episode.id)
+        .await
+        .expect("Database connection failed")
+        .expect("Episode row with no existing episode");
+
+    assert_eq!(saved_episode, episode);
+}
+
+#[tokio::test]
+async fn test_get_all_episodes() {
+    let ctx = TestContext::setup().await;
+    let (podcast, episodes) = PodcastFixtureBuilder::new(&ctx)
+        .subscribed()
+        .with_episodes(3)
+        .build()
+        .await;
+
+    // Run your service assertion!
+    let fetched = ctx.episode_service.get_episodes_by_podcast(&podcast.id).await.unwrap();
+    assert_eq!(fetched.len(), 3);
 }

@@ -10,7 +10,6 @@ pub fn podcasts_router() -> Router<AppState> {
     Router::new()
         .route("/", get(list_subscribed_podcasts))
         .route("/", post(subscribe_to_podcast))
-        // .route("/download", post(save_episode))
 }
 
 pub async fn list_subscribed_podcasts(
@@ -19,24 +18,6 @@ pub async fn list_subscribed_podcasts(
     let podcasts = state.podcast_service.list_podcasts().await?;
     Ok(Json(podcasts))
 }
-
-// pub async fn save_episode(
-//     State(state): State<AppState>,
-//     Json(payload): Json<PodcastRequest>,
-// ) -> Result<Json<Value>, AppError> {
-//     let guid = payload.guid.ok_or_else(|| AppError::BadRequest("GUID missing from payload".into()))?;
-//
-//     tracing::info!("Downloading episode of {} with id {}", payload.feed_url, guid);
-//
-//     let episode_path = state.podcast_service
-//         .download_episode(&payload.feed_url, &guid)
-//         .await?;
-//
-//     Ok(Json(json!({
-//         "status": "success",
-//         "file_path": episode_path
-//     })))
-// }
 
 pub async fn subscribe_to_podcast(
     State(state): State<AppState>,
