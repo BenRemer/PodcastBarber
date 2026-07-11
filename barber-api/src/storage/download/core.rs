@@ -1,8 +1,8 @@
-use std::path::PathBuf;
-use reqwest::Client;
 use crate::error::AppError;
+use reqwest::Client;
+use std::path::PathBuf;
 
-#[derive (Clone)]
+#[derive(Clone)]
 pub struct DownloadCore {
     pub(crate) base_dir: PathBuf,
     pub(crate) client: Client,
@@ -11,17 +11,16 @@ pub struct DownloadCore {
 impl DownloadCore {
     const PODCAST_DIR: &str = "podcast";
 
-    pub fn new(
-        base_dir: PathBuf,
-        client: Client,
-    ) -> Self {
+    pub fn new(base_dir: PathBuf, client: Client) -> Self {
         Self { base_dir, client }
     }
 
     // Returns the full PathBuf and ensures the folder exists
     pub async fn prepare_episode_path(
-        &self, folder_name: &str, episode_guid: &str
-    )-> Result<PathBuf, std::io::Error> {
+        &self,
+        folder_name: &str,
+        episode_guid: &str,
+    ) -> Result<PathBuf, std::io::Error> {
         let podcast_dir = self.base_dir.join(Self::PODCAST_DIR).join(folder_name);
 
         // Create the podcast-specific folder if it doesn't exist
@@ -39,7 +38,9 @@ impl DownloadCore {
         guid: &str,
     ) -> Result<PathBuf, AppError> {
         // Prepare path
-        let output_path = self.prepare_episode_path(folder_name, guid).await
+        let output_path = self
+            .prepare_episode_path(folder_name, guid)
+            .await
             .map_err(|e| {
                 tracing::error!("Storage error: {:?}", e);
                 AppError::InternalServerError("Failed to prepare storage".into())
@@ -52,25 +53,23 @@ impl DownloadCore {
         }
 
         // Fetch and Stream
-        let mut response = self.client
-            .get(audio_url)
-            .send()
+        let mut response = self.client.get(audio_url).send().await.map_err(|e| {
+            tracing::error!("Failed to download {}: {:?}", audio_url, e);
+            AppError::InternalServerError("Audio download failed".into())
+        })?;
+
+        let mut file = tokio::fs::File::create(&output_path).await.map_err(|e| {
+            tracing::error!("Failed to create file: {:?}", e);
+            AppError::InternalServerError("Failed to create local file".into())
+        })?;
+
+        while let Some(chunk) = response
+            .chunk()
             .await
-            .map_err(|e| {
-                tracing::error!("Failed to download {}: {:?}", audio_url, e);
-                AppError::InternalServerError("Audio download failed".into())
-            })?;
-
-        let mut file = tokio::fs::File::create(&output_path).await
-            .map_err(|e| {
-                tracing::error!("Failed to create file: {:?}", e);
-                AppError::InternalServerError("Failed to create local file".into())
-            })?;
-
-        while let Some(chunk) = response.chunk().await.map_err(|_| {
-            AppError::InternalServerError("Interrupted while streaming".into())
-        })? {
-            tokio::io::AsyncWriteExt::write_all(&mut file, &chunk).await
+            .map_err(|_| AppError::InternalServerError("Interrupted while streaming".into()))?
+        {
+            tokio::io::AsyncWriteExt::write_all(&mut file, &chunk)
+                .await
                 .map_err(|_| AppError::InternalServerError("Failed to write to disk".into()))?;
         }
 
@@ -94,10 +93,7 @@ mod tests {
         let core = DownloadCore::new(temp_dir.path().to_path_buf(), client);
         let podcast_name = "Tech_Talk: 101";
         let guid = "episode-12345";
-        let output_path = core
-            .prepare_episode_path(podcast_name, guid)
-            .await
-            .unwrap();
+        let output_path = core.prepare_episode_path(podcast_name, guid).await.unwrap();
         let expected_folder = temp_dir.path().join("podcast").join("Tech_Talk_ 101");
         assert!(
             expected_folder.exists(),

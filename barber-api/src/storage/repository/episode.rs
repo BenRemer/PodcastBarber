@@ -1,7 +1,7 @@
-use sqlx::SqlitePool;
-use uuid::Uuid;
 use crate::error::AppError;
 use crate::models::episode::{Episode, EpisodeState};
+use sqlx::SqlitePool;
+use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct EpisodeRepository {
@@ -13,10 +13,7 @@ impl EpisodeRepository {
         Self { pool }
     }
 
-    pub async fn upsert(
-        &self,
-        episode: Episode
-    ) -> Result<Episode, AppError> {
+    pub async fn upsert(&self, episode: Episode) -> Result<Episode, AppError> {
         let row = sqlx::query_as!(
             Episode,
             r#"
@@ -46,20 +43,17 @@ impl EpisodeRepository {
             episode.local_file_path,
             episode.state as EpisodeState,
         )
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| {
-                tracing::error!("DB upsert failed for episode: {}", e);
-                AppError::InternalServerError("Failed to save episode to database".into())
-            })?;
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("DB upsert failed for episode: {}", e);
+            AppError::InternalServerError("Failed to save episode to database".into())
+        })?;
 
         Ok(row)
     }
 
-    pub async fn get(
-        &self,
-        uid: &Uuid
-    ) -> Result<Option<Episode>, AppError> {
+    pub async fn get(&self, uid: &Uuid) -> Result<Option<Episode>, AppError> {
         let episode = sqlx::query_as!(
             Episode,
             r#"
@@ -76,20 +70,17 @@ impl EpisodeRepository {
             "#,
             uid
         )
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| {
-                tracing::error!("DB fetch_optional failed for episode {}: {}", uid, e);
-                AppError::InternalServerError("Failed to fetch episode".into())
-            })?;
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("DB fetch_optional failed for episode {}: {}", uid, e);
+            AppError::InternalServerError("Failed to fetch episode".into())
+        })?;
 
         Ok(episode)
     }
 
-    pub async fn get_by_podcast_id(
-        &self,
-        podcast_id: &Uuid
-    ) -> Result<Vec<Episode>, AppError> {
+    pub async fn get_by_podcast_id(&self, podcast_id: &Uuid) -> Result<Vec<Episode>, AppError> {
         let episodes = sqlx::query_as!(
             Episode,
             r#"
@@ -107,12 +98,12 @@ impl EpisodeRepository {
             "#,
             podcast_id
         )
-            .fetch_all(&self.pool)
-            .await
-            .map_err(|e| {
-                tracing::error!("DB fetch failed for podcast {} episodes: {}", podcast_id, e);
-                AppError::InternalServerError("Failed to fetch episodes".into())
-            })?;
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("DB fetch failed for podcast {} episodes: {}", podcast_id, e);
+            AppError::InternalServerError("Failed to fetch episodes".into())
+        })?;
 
         Ok(episodes)
     }
@@ -120,7 +111,7 @@ impl EpisodeRepository {
     pub async fn get_by_guid(
         &self,
         podcast_id: &Uuid,
-        guid: &str
+        guid: &str,
     ) -> Result<Option<Episode>, AppError> {
         let episode = sqlx::query_as!(
             Episode,
@@ -139,19 +130,17 @@ impl EpisodeRepository {
             podcast_id,
             guid
         )
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|e| {
-                tracing::error!("DB fetch_optional failed for episode {}: {}", guid, e);
-                AppError::InternalServerError("Failed to fetch episode".into())
-            })?;
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("DB fetch_optional failed for episode {}: {}", guid, e);
+            AppError::InternalServerError("Failed to fetch episode".into())
+        })?;
 
         Ok(episode)
     }
 
-    pub async fn delete(
-        &self, id: &Uuid
-    ) -> Result<bool, AppError> {
+    pub async fn delete(&self, id: &Uuid) -> Result<bool, AppError> {
         let result = sqlx::query!(
             r#"
             DELETE FROM episodes

@@ -1,9 +1,9 @@
-use std::path::PathBuf;
-use reqwest::Client;
-use tokio::sync::mpsc;
 use crate::error::AppError;
 use crate::storage::download::core::DownloadCore;
-use crate::storage::download::{DownloadWorker, DownloadJob, DownloadResult};
+use crate::storage::download::{DownloadJob, DownloadResult, DownloadWorker};
+use reqwest::Client;
+use std::path::PathBuf;
+use tokio::sync::mpsc;
 
 #[derive(Clone)]
 pub struct DownloadManager {
@@ -18,7 +18,9 @@ impl DownloadManager {
         buffer: usize,
     ) -> (Self, DownloadWorker) {
         let (queue_send, queue_receive) = mpsc::channel::<DownloadJob>(buffer);
-        let service = Self { job_queue: queue_send };
+        let service = Self {
+            job_queue: queue_send,
+        };
         let worker = DownloadWorker {
             core: DownloadCore::new(base_dir, client),
             queue_receive,
@@ -27,10 +29,7 @@ impl DownloadManager {
         (service, worker)
     }
 
-    pub async fn enqueue_download(
-        &self,
-        job: DownloadJob
-    ) -> Result<(), AppError> {
+    pub async fn enqueue_download(&self, job: DownloadJob) -> Result<(), AppError> {
         self.job_queue.send(job).await.map_err(|e| {
             tracing::error!("Download queue rejected job: {}", e);
             AppError::InternalServerError("Download queue is full or offline".into())
@@ -58,17 +57,20 @@ mod tests {
     async fn test_enqueue_download_success() {
         let (callback_tx, _callback_rx) = mpsc::channel(10);
         let client = reqwest::Client::new();
-        let (manager, mut worker) = DownloadManager::new(
-            PathBuf::from("/tmp"),
-            client,
-            callback_tx,
-            10
-        );
+        let (manager, mut worker) =
+            DownloadManager::new(PathBuf::from("/tmp"), client, callback_tx, 10);
         let job = create_dummy_job();
         let expected_id = job.uuid;
         let result = manager.enqueue_download(job).await;
-        assert!(result.is_ok(), "Manager should successfully enqueue the job");
-        let received_job = worker.queue_receive.recv().await.expect("Worker should have received a job");
+        assert!(
+            result.is_ok(),
+            "Manager should successfully enqueue the job"
+        );
+        let received_job = worker
+            .queue_receive
+            .recv()
+            .await
+            .expect("Worker should have received a job");
         assert_eq!(received_job.uuid, expected_id);
     }
 
@@ -76,16 +78,18 @@ mod tests {
     async fn test_enqueue_fails_when_worker_is_offline() {
         let (callback_tx, _callback_rx) = mpsc::channel(10);
         let client = reqwest::Client::new();
-        let (manager, worker) = DownloadManager::new(
-            PathBuf::from("/tmp"),
-            client,
-            callback_tx,
-            10
-        );
+        let (manager, worker) =
+            DownloadManager::new(PathBuf::from("/tmp"), client, callback_tx, 10);
         // Simulate a catastrophic crash: drop the worker so the receiver channel closes!
         drop(worker);
         let result = manager.enqueue_download(create_dummy_job()).await;
-        assert!(result.is_err(), "Manager should fail if the queue is closed");
-        assert!(matches!(result.unwrap_err(), AppError::InternalServerError(_)));
+        assert!(
+            result.is_err(),
+            "Manager should fail if the queue is closed"
+        );
+        assert!(matches!(
+            result.unwrap_err(),
+            AppError::InternalServerError(_)
+        ));
     }
 }

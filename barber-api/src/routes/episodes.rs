@@ -1,11 +1,11 @@
-use axum::{extract::State, Json, Router};
+use crate::models::api::{EpisodeItem, EpisodeQuery, EpisodeRequest};
+use crate::models::episode::Episode;
+use crate::{error::AppError, state::AppState};
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::routing::{delete, get, post};
+use axum::{Json, Router, extract::State};
 use uuid::Uuid;
-use crate::{error::AppError, state::AppState};
-use crate::models::api::{EpisodeItem, EpisodeQuery, EpisodeRequest};
-use crate::models::episode::Episode;
 
 pub fn episodes_router() -> Router<AppState> {
     // /api/podcasts/{id}/episodes
@@ -23,12 +23,14 @@ pub async fn list_episodes(
 ) -> Result<(StatusCode, Json<Vec<EpisodeItem>>), AppError> {
     tracing::info!("Listing episodes for: {:?}", podcast_id);
 
-    let podcast = state.podcast_service
+    let podcast = state
+        .podcast_service
         .get_podcast_by_id(&podcast_id)
         .await?
         .ok_or(AppError::NotFound)?;
 
-    let episodes = state.rss_service
+    let episodes = state
+        .rss_service
         .list_episodes(&podcast.feed_url, query.limit)
         .await?;
 
@@ -41,12 +43,14 @@ pub async fn list_subscribed_episodes(
 ) -> Result<(StatusCode, Json<Vec<Episode>>), AppError> {
     tracing::info!("Listing episodes for: {:?}", podcast_id);
 
-    let podcast = state.podcast_service
+    let podcast = state
+        .podcast_service
         .get_podcast_by_id(&podcast_id)
         .await?
         .ok_or(AppError::NotFound)?;
 
-    let episodes = state.episode_service
+    let episodes = state
+        .episode_service
         .get_episodes_by_podcast(&podcast.id)
         .await?;
 
@@ -58,23 +62,41 @@ pub async fn save_episode(
     Path(podcast_id): Path<Uuid>,
     Json(payload): Json<EpisodeRequest>,
 ) -> Result<(StatusCode, Json<Episode>), AppError> {
-    if !state.podcast_service.is_subscribed_by_id(&podcast_id).await? {
+    if !state
+        .podcast_service
+        .is_subscribed_by_id(&podcast_id)
+        .await?
+    {
         return Err(AppError::NotFound);
     }
 
-    let podcast = state.podcast_service.get_podcast_by_id(&podcast_id)
+    let podcast = state
+        .podcast_service
+        .get_podcast_by_id(&podcast_id)
         .await?
         .ok_or_else(|| AppError::BadRequest("Podcast is missing from the database".into()))?;
 
-    tracing::info!("Downloading episode of {} with id {}", podcast.title, payload.guid);
+    tracing::info!(
+        "Downloading episode of {} with id {}",
+        podcast.title,
+        payload.guid
+    );
 
-    let channel = state.rss_service.construct_rss_channel(&podcast.feed_url).await?;
-    let episode_metadata = state.rss_service.get_episode_metadata(
-        &channel, &podcast.feed_url, &payload.guid).await?;
+    let channel = state
+        .rss_service
+        .construct_rss_channel(&podcast.feed_url)
+        .await?;
+    let episode_metadata = state
+        .rss_service
+        .get_episode_metadata(&channel, &podcast.feed_url, &payload.guid)
+        .await?;
 
     let episode = episode_metadata.into_pending_episode(podcast_id);
 
-    let episode = state.episode_service.queue_episode_download(podcast, episode).await?;
+    let episode = state
+        .episode_service
+        .queue_episode_download(podcast, episode)
+        .await?;
 
     Ok((StatusCode::CREATED, Json(episode)))
 }
@@ -85,11 +107,18 @@ pub async fn remove_episode(
 ) -> Result<StatusCode, AppError> {
     tracing::info!("Deleting episode of {} with id {}", podcast_id, episode_id);
 
-    if !state.podcast_service.is_subscribed_by_id(&podcast_id).await? {
+    if !state
+        .podcast_service
+        .is_subscribed_by_id(&podcast_id)
+        .await?
+    {
         return Err(AppError::NotFound);
     }
 
-    let episode = state.episode_service.get(&episode_id).await?
+    let episode = state
+        .episode_service
+        .get(&episode_id)
+        .await?
         .ok_or_else(|| AppError::BadRequest("Podcast is missing from the database".into()))?;
 
     state.episode_service.delete_episode(episode).await?;

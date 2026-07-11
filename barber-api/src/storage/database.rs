@@ -1,8 +1,8 @@
-use std::str::FromStr;
-use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
-use sqlx::SqlitePool;
 use crate::storage::repository::episode::EpisodeRepository;
 use crate::storage::repository::podcast::PodcastRepository;
+use sqlx::SqlitePool;
+use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+use std::str::FromStr;
 
 pub struct Database {
     pub pool: SqlitePool,
@@ -10,12 +10,9 @@ pub struct Database {
 
 impl Database {
     pub async fn connect(url: &str) -> Result<Self, sqlx::Error> {
-        let options = SqliteConnectOptions::from_str(url)?
-            .create_if_missing(true);
+        let options = SqliteConnectOptions::from_str(url)?.create_if_missing(true);
 
-        let pool = SqlitePoolOptions::new()
-            .connect_with(options)
-            .await?;
+        let pool = SqlitePoolOptions::new().connect_with(options).await?;
 
         Ok(Self { pool })
     }

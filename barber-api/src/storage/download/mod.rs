@@ -1,8 +1,8 @@
-mod manager;
 mod core;
-mod worker;
+mod manager;
 mod types;
+mod worker;
 
 pub use manager::DownloadManager;
+pub use types::{DownloadJob, DownloadResult};
 pub use worker::DownloadWorker;
-pub use types::{DownloadResult, DownloadJob};

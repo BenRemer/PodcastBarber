@@ -1,6 +1,6 @@
-use barber_api::models::episode::{Episode, EpisodeState};
 use crate::common::TestContext;
 use crate::common::builder::PodcastFixtureBuilder;
+use barber_api::models::episode::{Episode, EpisodeState};
 
 mod common;
 
@@ -15,7 +15,8 @@ async fn test_queue_episode_download() {
     let episode = episodes.pop().expect("no episodes");
 
     // Trigger the queue (Returns immediately as 'Pending')
-    let saved_episode = ctx.episode_service
+    let saved_episode = ctx
+        .episode_service
         .queue_episode_download(podcast, episode.clone())
         .await
         .expect("Service failed to download episode");
@@ -56,9 +57,16 @@ async fn test_queue_episode_download() {
         .expect("Episode row with no existing episode");
 
     // Assert the final outcome of the background task
-    assert_eq!(final_episode.state, EpisodeState::Downloaded, "Background task failed or timed out");
+    assert_eq!(
+        final_episode.state,
+        EpisodeState::Downloaded,
+        "Background task failed or timed out"
+    );
     assert_eq!(final_episode.title, episode.title);
-    assert!(final_episode.local_file_path.is_some(), "File path should be populated");
+    assert!(
+        final_episode.local_file_path.is_some(),
+        "File path should be populated"
+    );
 }
 
 #[tokio::test]
@@ -76,7 +84,8 @@ async fn test_save_nonexistent_episode() {
         state: EpisodeState::Pending,
     };
 
-    let failure = ctx.episode_service
+    let failure = ctx
+        .episode_service
         .queue_episode_download(podcast, episode)
         .await;
 
@@ -94,7 +103,8 @@ async fn test_get_episode() {
 
     let episode = episodes.pop().expect("no episodes");
 
-    let saved_episode = ctx.episode_service
+    let saved_episode = ctx
+        .episode_service
         .get(&episode.id)
         .await
         .expect("Database connection failed")
@@ -113,7 +123,11 @@ async fn test_get_all_episodes() {
         .await;
 
     // Run your service assertion!
-    let fetched = ctx.episode_service.get_episodes_by_podcast(&podcast.id).await.unwrap();
+    let fetched = ctx
+        .episode_service
+        .get_episodes_by_podcast(&podcast.id)
+        .await
+        .unwrap();
     assert_eq!(fetched.len(), 3);
 }
 
@@ -128,7 +142,8 @@ async fn test_delete_episode() {
 
     let episode = episodes.into_iter().nth(2).expect("no episode");
 
-    let saved_episode = ctx.episode_service
+    let saved_episode = ctx
+        .episode_service
         .queue_episode_download(podcast, episode.clone())
         .await
         .expect("Service failed to download episode");
@@ -147,7 +162,11 @@ async fn test_delete_episode() {
         .unwrap()
         .expect("Episode row with no existing episode");
 
-    assert_eq!(final_episode.state, EpisodeState::Downloaded, "Background task failed or timed out");
+    assert_eq!(
+        final_episode.state,
+        EpisodeState::Downloaded,
+        "Background task failed or timed out"
+    );
 
     let result = ctx.episode_service.delete_episode(final_episode).await;
 

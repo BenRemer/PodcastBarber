@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 pub(crate) use crate::models::episode::EpisodeItem;
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct PodcastRequest {

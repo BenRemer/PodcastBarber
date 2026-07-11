@@ -1,3 +1,3 @@
-pub mod podcast;
-pub mod episode;
 pub(crate) mod api;
+pub mod episode;
+pub mod podcast;

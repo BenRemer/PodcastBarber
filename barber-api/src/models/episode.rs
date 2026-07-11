@@ -1,6 +1,6 @@
+use crate::utils::generate_episode_uuid;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::utils::generate_episode_uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, sqlx::Type)]
 #[sqlx(type_name = "TEXT", rename_all = "lowercase")]

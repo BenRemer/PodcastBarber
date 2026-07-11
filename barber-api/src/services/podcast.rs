@@ -1,7 +1,7 @@
-use uuid::Uuid;
 use crate::error::AppError;
 use crate::models::podcast::Podcast;
 use crate::storage::repository::podcast::PodcastRepository;
+use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct PodcastService {
@@ -9,20 +9,15 @@ pub struct PodcastService {
 }
 
 impl PodcastService {
-    pub fn new(podcast_repository: PodcastRepository
-    ) -> Self {
-        Self {
-            podcast_repository,
-        }
+    pub fn new(podcast_repository: PodcastRepository) -> Self {
+        Self { podcast_repository }
     }
 
     pub async fn list_podcasts(&self) -> Result<Vec<Podcast>, AppError> {
         self.podcast_repository.get_all().await
     }
 
-    pub async fn subscribe_podcast(
-        &self, podcast: Podcast
-    ) -> Result<Podcast, AppError> {
+    pub async fn subscribe_podcast(&self, podcast: Podcast) -> Result<Podcast, AppError> {
         self.podcast_repository.upsert(podcast).await
     }
 

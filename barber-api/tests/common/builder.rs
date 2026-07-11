@@ -1,6 +1,6 @@
+use crate::common::TestContext;
 use barber_api::models::episode::Episode;
 use barber_api::models::podcast::Podcast;
-use crate::common::TestContext;
 
 pub struct PodcastFixtureBuilder<'a> {
     ctx: &'a TestContext,
@@ -37,18 +37,27 @@ impl<'a> PodcastFixtureBuilder<'a> {
     }
 
     pub async fn build(self) -> (Podcast, Vec<Episode>) {
-        let mut podcast = self.ctx.create_podcast(
-            self.title.as_deref(),
-            self.feed_url.as_deref()
-        ).await;
+        let mut podcast = self
+            .ctx
+            .create_podcast(self.title.as_deref(), self.feed_url.as_deref())
+            .await;
 
         if self.auto_subscribe || self.with_episodes > 0 {
-            podcast = self.ctx.podcast_service.subscribe_podcast(podcast).await.unwrap();
+            podcast = self
+                .ctx
+                .podcast_service
+                .subscribe_podcast(podcast)
+                .await
+                .unwrap();
         }
 
         let mut episodes = Vec::new();
         for _ in 0..self.with_episodes {
-            episodes.push(self.ctx.create_test_episode(Some(podcast.clone()), None, None).await);
+            episodes.push(
+                self.ctx
+                    .create_test_episode(Some(podcast.clone()), None, None)
+                    .await,
+            );
         }
 
         (podcast, episodes)

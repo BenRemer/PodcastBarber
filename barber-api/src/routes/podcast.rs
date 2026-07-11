@@ -1,17 +1,16 @@
-use axum::{extract::State, Json, Router};
-use axum::http::StatusCode;
-use axum::routing::{get, post};
-use crate::{error::AppError, state::AppState};
 use crate::models::api::PodcastRequest;
 use crate::models::podcast::Podcast;
-
+use crate::{error::AppError, state::AppState};
+use axum::http::StatusCode;
+use axum::routing::{get, post};
+use axum::{Json, Router, extract::State};
 
 pub fn podcasts_router() -> Router<AppState> {
     // /api/podcasts
     Router::new()
         .route("/", get(list_subscribed_podcasts))
         .route("/", post(subscribe_to_podcast))
-        // .route("/{podcast_id}", get(list_episodes))
+    // .route("/{podcast_id}", get(list_episodes))
 }
 
 pub async fn list_subscribed_podcasts(
@@ -25,10 +24,14 @@ pub async fn subscribe_to_podcast(
     State(state): State<AppState>,
     Json(payload): Json<PodcastRequest>,
 ) -> Result<(StatusCode, Json<Podcast>), AppError> {
-    let metadata = state.rss_service.fetch_podcast_metadata(&payload.feed_url).await?;
+    let metadata = state
+        .rss_service
+        .fetch_podcast_metadata(&payload.feed_url)
+        .await?;
     let podcast = Podcast::from(metadata);
 
-    let saved_podcast  = state.podcast_service
+    let saved_podcast = state
+        .podcast_service
         .subscribe_podcast(podcast)
         .await
         .map_err(|e| {

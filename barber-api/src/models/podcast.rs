@@ -1,7 +1,7 @@
+use crate::utils::generate_podcast_uuid;
 use rss::Channel;
 use serde::Serialize;
 use uuid::Uuid;
-use crate::utils::generate_podcast_uuid;
 
 pub struct PodcastMetadata {
     pub title: String,
@@ -17,9 +17,9 @@ impl PodcastMetadata {
             title: channel.title().to_string(),
             feed_url,
             image_url: channel.image().map(|i| i.url().to_string()),
-            description: Some(channel.description().to_string())
-                .filter(|s| !s.is_empty()),
-            author: channel.itunes_ext()
+            description: Some(channel.description().to_string()).filter(|s| !s.is_empty()),
+            author: channel
+                .itunes_ext()
                 .and_then(|itunes| itunes.author().map(str::to_string)),
         }
     }

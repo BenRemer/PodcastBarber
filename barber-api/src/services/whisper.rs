@@ -9,10 +9,7 @@ pub struct WhisperService {
 
 impl WhisperService {
     pub fn new(base_url: String, client: Client) -> Self {
-        Self {
-            client,
-            base_url,
-        }
+        Self { client, base_url }
     }
 
     pub async fn check_health(&self) -> Result<Value, reqwest::Error> {
@@ -25,7 +22,7 @@ impl WhisperService {
         &self,
         file_name: String,
         content_type: String,
-        data: bytes::Bytes
+        data: bytes::Bytes,
     ) -> Result<Value, reqwest::Error> {
         let file_part = reqwest::multipart::Part::stream(data)
             .file_name(file_name)
@@ -37,10 +34,7 @@ impl WhisperService {
             .text("response_format", "verbose_json");
 
         let endpoint = format!("{}/audio/transcriptions", self.base_url);
-        let response = self.client.post(endpoint)
-            .multipart(form)
-            .send()
-            .await?;
+        let response = self.client.post(endpoint).multipart(form).send().await?;
 
         response.json::<Value>().await
     }

@@ -1,11 +1,11 @@
-use reqwest::{multipart, Client, StatusCode};
+use reqwest::{Client, StatusCode, multipart};
 use serde_json::Value;
 use testcontainers::{
+    GenericImage, ImageExt,
     core::{IntoContainerPort, WaitFor},
     runners::AsyncRunner,
-    GenericImage,
-    ImageExt
-};use tokio::fs;
+};
+use tokio::fs;
 
 mod common;
 
@@ -17,13 +17,11 @@ async fn test_full_transcription_pipeline() {
         expected_phrase: &'static str,
     }
 
-    let cases = vec![
-        TestFile {
-            name: "bologna-speech-english.wav",
-            mime: "audio/wav",
-            expected_phrase: "bologna",
-        },
-    ];
+    let cases = vec![TestFile {
+        name: "bologna-speech-english.wav",
+        mime: "audio/wav",
+        expected_phrase: "bologna",
+    }];
 
     let whisper_image = GenericImage::new("fedirz/faster-whisper-server", "latest-cuda")
         .with_wait_for(WaitFor::message_on_stderr("Application startup complete"))
@@ -32,7 +30,10 @@ async fn test_full_transcription_pipeline() {
         .with_env_var("WHISPER__MODEL", "tiny");
 
     println!("Booting ephemeral Whisper container...");
-    let container = whisper_image.start().await.expect("Failed to start Whisper container");
+    let container = whisper_image
+        .start()
+        .await
+        .expect("Failed to start Whisper container");
 
     let host_port = container.get_host_port_ipv4(8000).await.unwrap();
     let dynamic_url = format!("http://127.0.0.1:{}/v1/audio/transcriptions", host_port);
@@ -47,7 +48,9 @@ async fn test_full_transcription_pipeline() {
 
         let audio_path = common::get_asset_path("test_audio.mp3");
 
-        let audio_bytes = fs::read(&audio_path).await.expect(&format!("Failed to read {}", case.name));
+        let audio_bytes = fs::read(&audio_path)
+            .await
+            .expect(&format!("Failed to read {}", case.name));
 
         // Construct the multipart form data using the struct fields
         let file_part = multipart::Part::bytes(audio_bytes)
@@ -69,13 +72,15 @@ async fn test_full_transcription_pipeline() {
         assert_eq!(
             response.status(),
             StatusCode::OK,
-            "Container API did not return 200 OK for file: {}", case.name
+            "Container API did not return 200 OK for file: {}",
+            case.name
         );
 
         // Parse the JSON and assert the transcription is accurate
         let json: Value = response.json().await.expect("Response was not valid JSON");
 
-        let transcript = json.get("text")
+        let transcript = json
+            .get("text")
             .expect("JSON payload missing 'text' field")
             .as_str()
             .expect("'text' field is not a string");
@@ -84,7 +89,8 @@ async fn test_full_transcription_pipeline() {
         assert!(
             transcript.to_lowercase().contains(case.expected_phrase),
             "Whisper failed to transcribe the expected phrase for {}. Got: {}",
-            case.name, transcript
+            case.name,
+            transcript
         );
         println!("transcript: {}", transcript);
     }

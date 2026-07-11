@@ -1,10 +1,10 @@
-use axum::{routing::get, routing::post, Router};
+use axum::{Router, routing::get, routing::post};
 
 pub mod audio;
-mod ping;
-mod feeds;
-mod podcast;
 mod episodes;
+mod feeds;
+mod ping;
+mod podcast;
 
 use crate::state::AppState;
 

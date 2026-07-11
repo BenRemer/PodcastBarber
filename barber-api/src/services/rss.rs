@@ -1,8 +1,8 @@
-use reqwest::Client;
-use rss::{Channel, Item};
 use crate::error::AppError;
 use crate::models::api::EpisodeItem;
 use crate::models::podcast::PodcastMetadata;
+use reqwest::Client;
+use rss::{Channel, Item};
 
 #[derive(Clone)]
 pub struct RSSFeedService {
@@ -11,23 +11,26 @@ pub struct RSSFeedService {
 
 impl RSSFeedService {
     pub fn new(client: Client) -> Self {
-        Self {
-            client,
-        }
+        Self { client }
     }
 
-    pub async fn fetch_podcast_metadata(&self, feed_url: &str) -> Result<PodcastMetadata, AppError> {
+    pub async fn fetch_podcast_metadata(
+        &self,
+        feed_url: &str,
+    ) -> Result<PodcastMetadata, AppError> {
         tracing::info!("Fetching feed {}", feed_url);
         let channel = self.construct_rss_channel(feed_url).await?;
-        Ok(PodcastMetadata::from_channel(&channel, feed_url.to_string()))
+        Ok(PodcastMetadata::from_channel(
+            &channel,
+            feed_url.to_string(),
+        ))
     }
 
     pub(crate) fn extract_metadata(item: &Item) -> Result<EpisodeItem, AppError> {
-        let title = item.title()
-            .unwrap_or("Unknown Episode")
-            .to_string();
+        let title = item.title().unwrap_or("Unknown Episode").to_string();
 
-        let audio_url = item.enclosure()
+        let audio_url = item
+            .enclosure()
             .map(|enc| enc.url().to_string())
             .ok_or_else(|| {
                 tracing::warn!("Episode '{}' has no audio enclosure", title);
@@ -36,10 +39,12 @@ impl RSSFeedService {
 
         let publish_date = item.pub_date().map(|date| date.to_string());
 
-        let guid = item.guid()
+        let guid = item
+            .guid()
             .map(|id| id.value().to_string())
             .unwrap_or_else(|| {
-                let input_to_hash = item.enclosure()
+                let input_to_hash = item
+                    .enclosure()
                     .map(|e| e.url())
                     .or_else(|| item.link())
                     .or_else(|| item.title());
@@ -54,21 +59,21 @@ impl RSSFeedService {
             guid,
             title,
             audio_url,
-            publish_date
+            publish_date,
         })
     }
 
     pub(crate) fn parse_rss_channel(xml_bytes: &[u8]) -> Result<Channel, AppError> {
-        Channel::read_from(xml_bytes)
-            .map_err(|e| {
-                println!("!!! RSS PARSING CRASHED BECAUSE: {:#?} !!!", e);
-                tracing::error!("Failed to parse RSS: {}", e);
-                AppError::InternalServerError("Invalid RSS format".into())
-            })
+        Channel::read_from(xml_bytes).map_err(|e| {
+            println!("!!! RSS PARSING CRASHED BECAUSE: {:#?} !!!", e);
+            tracing::error!("Failed to parse RSS: {}", e);
+            AppError::InternalServerError("Invalid RSS format".into())
+        })
     }
 
     async fn fetch_rss_bytes(&self, feed_url: &str) -> Result<bytes::Bytes, AppError> {
-        self.client.get(feed_url)
+        self.client
+            .get(feed_url)
             .send()
             .await
             .map_err(|e| {
@@ -86,14 +91,17 @@ impl RSSFeedService {
     }
 
     pub async fn list_episodes(
-        &self, feed_url: &str, limit: Option<usize>
+        &self,
+        feed_url: &str,
+        limit: Option<usize>,
     ) -> Result<Vec<EpisodeItem>, AppError> {
         let size = limit.unwrap_or(usize::MAX);
         tracing::info!("Listing up to {} episodes of {}", size, feed_url);
 
         let channel = self.construct_rss_channel(feed_url).await?; // todo pass in
 
-        let items: Vec<EpisodeItem> = channel.items
+        let items: Vec<EpisodeItem> = channel
+            .items
             .iter()
             .filter_map(|item| Self::extract_metadata(item).ok())
             .take(size)
@@ -103,17 +111,19 @@ impl RSSFeedService {
     }
 
     pub async fn get_episode_metadata(
-        &self, channel: &Channel, feed_url: &str, guid: &str
+        &self,
+        channel: &Channel,
+        feed_url: &str,
+        guid: &str,
     ) -> Result<EpisodeItem, AppError> {
         tracing::info!("Fetching episode {} from {}", guid, feed_url);
 
-        channel.items()
+        channel
+            .items()
             .iter()
-            .find_map(|item| {
-                match Self::extract_metadata(item) {
-                    Ok(meta) if meta.guid == guid => Some(meta),
-                    _ => None,
-                }
+            .find_map(|item| match Self::extract_metadata(item) {
+                Ok(meta) if meta.guid == guid => Some(meta),
+                _ => None,
             })
             .ok_or_else(|| {
                 tracing::warn!("Episode with GUID '{}' not found in RSS feed", guid);
@@ -125,7 +135,7 @@ impl RSSFeedService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rss::{ItemBuilder, EnclosureBuilder, GuidBuilder};
+    use rss::{EnclosureBuilder, GuidBuilder, ItemBuilder};
 
     #[test]
     fn test_extract_metadata_happy_path() {
@@ -149,7 +159,10 @@ mod tests {
         assert_eq!(result.title, "Test Episode");
         assert_eq!(result.audio_url, "https://example.com/audio.mp3");
         assert_eq!(result.guid, "real-guid-123");
-        assert_eq!(result.publish_date, Some("Mon, 01 Jan 2026 00:00:00 GMT".to_string()));
+        assert_eq!(
+            result.publish_date,
+            Some("Mon, 01 Jan 2026 00:00:00 GMT".to_string())
+        );
     }
 
     #[test]
@@ -166,7 +179,8 @@ mod tests {
 
         let result = RSSFeedService::extract_metadata(&item).expect("Should succeed");
 
-        let expected_hash = crate::utils::generate_deterministic_hash("https://example.com/audio.mp3");
+        let expected_hash =
+            crate::utils::generate_deterministic_hash("https://example.com/audio.mp3");
 
         assert_eq!(result.guid, expected_hash);
     }
@@ -198,8 +212,8 @@ mod tests {
             </rss>
         "#;
 
-        let channel = RSSFeedService::parse_rss_channel(raw_xml.as_bytes())
-            .expect("Should parse valid XML");
+        let channel =
+            RSSFeedService::parse_rss_channel(raw_xml.as_bytes()).expect("Should parse valid XML");
 
         assert_eq!(channel.title(), "My Awesome Podcast");
     }

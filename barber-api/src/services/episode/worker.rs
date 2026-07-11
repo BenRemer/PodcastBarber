@@ -1,7 +1,7 @@
-use tokio::sync::mpsc;
 use crate::models::episode::EpisodeState;
 use crate::storage::download::DownloadResult;
 use crate::storage::repository::episode::EpisodeRepository;
+use tokio::sync::mpsc;
 
 pub struct EpisodeWorker {
     pub(crate) repo: EpisodeRepository,

@@ -1,12 +1,12 @@
-use std::sync::Arc;
-use tokio::sync::mpsc;
-use uuid::Uuid;
 use crate::error::AppError;
 use crate::models::episode::Episode;
 use crate::models::podcast::Podcast;
 use crate::services::episode::worker::EpisodeWorker;
 use crate::storage::download::{DownloadJob, DownloadManager, DownloadResult};
 use crate::storage::repository::episode::EpisodeRepository;
+use std::sync::Arc;
+use tokio::sync::mpsc;
+use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct EpisodeService {
@@ -39,13 +39,15 @@ impl EpisodeService {
 
     pub async fn get_episodes_by_podcast(
         &self,
-        podcast_id: &Uuid
+        podcast_id: &Uuid,
     ) -> Result<Vec<Episode>, AppError> {
         self.episode_repository.get_by_podcast_id(podcast_id).await
     }
 
     pub async fn queue_episode_download(
-        &self, podcast: Podcast, episode: Episode
+        &self,
+        podcast: Podcast,
+        episode: Episode,
     ) -> Result<Episode, AppError> {
         // Insert into the database
         let saved_episode = self.episode_repository.upsert(episode).await?;
@@ -63,13 +65,11 @@ impl EpisodeService {
         Ok(saved_episode)
     }
 
-    pub async fn delete_episode(
-        &self, episode: Episode
-    ) -> Result<(), AppError> {
+    pub async fn delete_episode(&self, episode: Episode) -> Result<(), AppError> {
         let found = self.episode_repository.delete(&episode.id).await?;
 
         if !found {
-            return Err(AppError::NotFound)
+            return Err(AppError::NotFound);
         };
 
         if let Some(path) = &episode.local_file_path {

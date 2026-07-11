@@ -1,6 +1,6 @@
+use crate::error::AppError;
 use std::path::PathBuf;
 use uuid::Uuid;
-use crate::error::AppError;
 
 #[derive(Debug, Clone)]
 pub struct DownloadJob {
