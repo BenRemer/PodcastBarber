@@ -2,6 +2,7 @@ use crate::error::AppError;
 use axum::extract::{FromRequest, Multipart, Request};
 use bytes::Bytes;
 
+#[derive(Clone, Debug)]
 pub struct AudioUpload {
     pub file_name: String,
     pub content_type: String,

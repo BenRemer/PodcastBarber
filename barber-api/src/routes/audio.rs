@@ -1,27 +1,26 @@
 use crate::extractors::AudioUpload;
+use crate::services::transcribe::types::TranscribeJob;
 use crate::{error::AppError, state::AppState};
+use axum::extract::State;
 use axum::http::StatusCode;
-use axum::{Json, extract::State};
-use serde_json::Value;
 
 pub async fn handle_upload(
     State(state): State<AppState>,
     upload: AudioUpload,
-) -> Result<(StatusCode, Json<Value>), AppError> {
+) -> Result<StatusCode, AppError> {
     tracing::info!(
         "Shipping '{}' ({} bytes) to Whisper sidecar",
         upload.file_name,
         upload.data.len()
     );
 
-    let json_result = state
-        .whisper_service
-        .transcribe_audio(upload.file_name, upload.content_type, upload.data)
-        .await
-        .map_err(|e| {
-            tracing::error!("Whisper inference failed: {}", e);
-            AppError::InternalServerError("Inference engine failure".into())
-        })?;
+    let job = TranscribeJob {
+        file_name: upload.file_name,
+        content_type: upload.content_type,
+        data: upload.data,
+    };
 
-    Ok((StatusCode::OK, Json(json_result)))
+    state.whisper_service.transcribe_audio(job).await?;
+
+    Ok(StatusCode::ACCEPTED)
 }

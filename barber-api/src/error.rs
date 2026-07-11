@@ -13,6 +13,13 @@ pub enum AppError {
     NotFound,
 }
 
+impl From<reqwest::Error> for AppError {
+    fn from(err: reqwest::Error) -> Self {
+        tracing::error!("Reqwest HTTP error: {:?}", err);
+        AppError::InternalServerError(format!("Network request failed: {}", err))
+    }
+}
+
 // Tell Axum how to convert these errors into HTTP responses
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {

@@ -4,7 +4,8 @@ use crate::constants::{
 use crate::services::episode::EpisodeService;
 use crate::services::podcast::PodcastService;
 use crate::services::rss::RSSFeedService;
-use crate::services::whisper::WhisperService;
+use crate::services::transcribe::TranscribeService;
+use crate::services::transcribe::types::TranscribeResult;
 use crate::state::AppState;
 use crate::storage::database::Database;
 use crate::storage::download::{DownloadManager, DownloadResult};
@@ -59,8 +60,13 @@ pub async fn run() {
     // Background workers
     let (download_callback_sender, download_callback_receiver) =
         mpsc::channel::<DownloadResult>(download_queue_size);
+    // todo set size
+    let transcribe_size = 20;
+    let (transcribe_callback_sender, transcribe_callback_receiver) =
+        mpsc::channel::<TranscribeResult>(transcribe_size);
 
     // Services
+    // todo make barber service to use transcribe_callback_receiver
     let (manager_handle, manager_worker) = DownloadManager::new(
         PathBuf::from(base_download_path),
         http_client.clone(),
@@ -68,7 +74,12 @@ pub async fn run() {
         download_queue_size,
     );
     let download_manager = Arc::new(manager_handle);
-    let whisper_service = WhisperService::new(whisper_url, http_client.clone());
+    let (whisper_service, whisper_worker) = TranscribeService::new(
+        whisper_url,
+        http_client.clone(),
+        transcribe_callback_sender,
+        transcribe_size,
+    );
     let rss_service = RSSFeedService::new(http_client.clone());
     let podcast_service = PodcastService::new(db.podcast_repository());
     let (episode_service, episode_worker) = EpisodeService::new(
@@ -83,6 +94,9 @@ pub async fn run() {
     });
     tokio::spawn(async move {
         episode_worker.run().await;
+    });
+    tokio::spawn(async move {
+        whisper_worker.run().await;
     });
 
     // Set state

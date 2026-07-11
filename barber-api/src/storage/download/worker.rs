@@ -12,14 +12,10 @@ impl DownloadWorker {
     pub async fn run(mut self) {
         tracing::info!("DownloadWorker background download worker starting...");
         while let Some(job) = self.queue_receive.recv().await {
-            let status = match self
+            let status = self
                 .core
                 .download_to_path(&job.audio_url, &job.folder_name, &job.guid)
-                .await
-            {
-                Ok(path) => Ok(path),
-                Err(e) => Err(e),
-            };
+                .await;
 
             let _ = self
                 .callback
