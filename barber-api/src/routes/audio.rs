@@ -1,4 +1,5 @@
 use axum::{extract::State, Json};
+use axum::http::StatusCode;
 use serde_json::Value;
 use crate::{state::AppState, error::AppError};
 use crate::extractors::AudioUpload;
@@ -6,7 +7,7 @@ use crate::extractors::AudioUpload;
 pub async fn handle_upload(
     State(state): State<AppState>,
     upload: AudioUpload,
-) -> Result<Json<Value>, AppError> {
+) -> Result<(StatusCode, Json<Value>), AppError> {
     tracing::info!("Shipping '{}' ({} bytes) to Whisper sidecar", upload.file_name, upload.data.len());
     
     let json_result = state.whisper_service
@@ -17,5 +18,5 @@ pub async fn handle_upload(
             AppError::InternalServerError("Inference engine failure".into())
         })?;
 
-    Ok(Json(json_result))
+    Ok((StatusCode::OK, Json(json_result)))
 }

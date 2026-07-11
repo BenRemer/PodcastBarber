@@ -6,13 +6,13 @@ cleanup() {
 
   docker compose down
 
-  echo "[*] Pruning unused Docker resources..."
+  #echo "[*] Pruning unused Docker resources..."
 
-  # Remove stopped containers, unused networks, and dangling images
-  docker system prune -f
+  ## Remove stopped containers, unused networks, and dangling images
+  #docker system prune -f
 
-  # Remove build cache (this is often the biggest space hog)
-  docker builder prune -af
+  ## Remove build cache (this is often the biggest space hog)
+  #docker builder prune -af
 
   # OPTIONAL (more aggressive):
   # Remove unused volumes (WARNING: can delete DB/data if not used by running containers)

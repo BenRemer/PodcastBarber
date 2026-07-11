@@ -148,4 +148,25 @@ impl EpisodeRepository {
 
         Ok(episode)
     }
+
+    pub async fn delete(
+        &self, id: &Uuid
+    ) -> Result<bool, AppError> {
+        let result = sqlx::query!(
+            r#"
+            DELETE FROM episodes
+            WHERE id = ?
+            "#,
+            id
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("DB delete failed for episode {}: {}", id, e);
+            AppError::InternalServerError("Failed to delete episode".into())
+        })?;
+
+        // Returns true if a record was actually deleted, false if the ID did not exist
+        Ok(result.rows_affected() > 0)
+    }
 }

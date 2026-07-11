@@ -1,9 +1,10 @@
+use axum::http::StatusCode;
 use axum::Json;
 use serde_json::{json, Value};
 use crate::error::AppError;
 
-pub async fn handle_ping() -> Result<Json<Value>, AppError> {
+pub async fn handle_ping() -> Result<(StatusCode, Json<Value>), AppError> {
     tracing::info!("Received ping request");
 
-    Ok(Json(json!({ "status": "PONG" })))
+    Ok((StatusCode::OK, Json(json!({ "payload": "PONG" }))))
 }

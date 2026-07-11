@@ -7,16 +7,18 @@ use crate::models::podcast::Podcast;
 
 
 pub fn podcasts_router() -> Router<AppState> {
+    // /api/podcasts
     Router::new()
         .route("/", get(list_subscribed_podcasts))
         .route("/", post(subscribe_to_podcast))
+        // .route("/{podcast_id}", get(list_episodes))
 }
 
 pub async fn list_subscribed_podcasts(
     State(state): State<AppState>,
-) -> Result<Json<Vec<Podcast>>, AppError> {
+) -> Result<(StatusCode, Json<Vec<Podcast>>), AppError> {
     let podcasts = state.podcast_service.list_podcasts().await?;
-    Ok(Json(podcasts))
+    Ok((StatusCode::OK, Json(podcasts)))
 }
 
 pub async fn subscribe_to_podcast(

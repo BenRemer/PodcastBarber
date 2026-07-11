@@ -4,9 +4,9 @@ use crate::error::AppError;
 
 #[derive(Debug, Clone)]
 pub struct DownloadJob {
-    pub episode_id: Uuid,
+    pub uuid: Uuid,
     pub audio_url: String,
-    pub podcast_title: String,
+    pub folder_name: String,
     pub guid: String,
 }
 

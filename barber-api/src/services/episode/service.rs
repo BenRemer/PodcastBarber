@@ -52,14 +52,30 @@ impl EpisodeService {
 
         // Drop the job into the Manager's queue.
         let job = DownloadJob {
-            episode_id: saved_episode.id.clone(),
+            uuid: saved_episode.id.clone(),
             audio_url: saved_episode.audio_url.clone(),
-            podcast_title: podcast.title.clone(),
+            folder_name: podcast.id.to_string(),
             guid: saved_episode.guid.clone(),
         };
         self.download_manager.enqueue_download(job).await?;
 
         // Return pending episode
         Ok(saved_episode)
+    }
+
+    pub async fn delete_episode(
+        &self, episode: Episode
+    ) -> Result<(), AppError> {
+        let found = self.episode_repository.delete(&episode.id).await?;
+
+        if !found {
+            return Err(AppError::NotFound)
+        };
+
+        if let Some(path) = &episode.local_file_path {
+            let _ = tokio::fs::remove_file(&path).await;
+        };
+
+        Ok(())
     }
 }

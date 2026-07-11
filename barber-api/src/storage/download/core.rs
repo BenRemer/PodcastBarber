@@ -18,18 +18,10 @@ impl DownloadCore {
         Self { base_dir, client }
     }
 
-    // Sanitizes a string for use as a folder name
-    fn sanitize_name(&self, name: &str) -> String {
-        name.replace(|c: char| !c.is_alphanumeric() && c != ' ', "_") // todo do i want spaces
-            .trim()
-            .to_string()
-    }
-
     // Returns the full PathBuf and ensures the folder exists
     pub async fn prepare_episode_path(
-        &self, podcast_name: &str, episode_guid: &str
+        &self, folder_name: &str, episode_guid: &str
     )-> Result<PathBuf, std::io::Error> {
-        let folder_name = self.sanitize_name(podcast_name);
         let podcast_dir = self.base_dir.join(Self::PODCAST_DIR).join(folder_name);
 
         // Create the podcast-specific folder if it doesn't exist
@@ -43,11 +35,11 @@ impl DownloadCore {
     pub async fn download_to_path(
         &self,
         audio_url: &str,
-        podcast_name: &str,
+        folder_name: &str,
         guid: &str,
     ) -> Result<PathBuf, AppError> {
         // Prepare path
-        let output_path = self.prepare_episode_path(podcast_name, guid).await
+        let output_path = self.prepare_episode_path(folder_name, guid).await
             .map_err(|e| {
                 tracing::error!("Storage error: {:?}", e);
                 AppError::InternalServerError("Failed to prepare storage".into())
@@ -94,24 +86,6 @@ mod tests {
     use tokio::io::AsyncReadExt;
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
-
-    #[test]
-    fn test_sanitize_name() {
-        let client = Client::new();
-        let core = DownloadCore::new(PathBuf::from("/tmp"), client);
-
-        assert_eq!(core.sanitize_name("My Podcast!"), "My Podcast_");
-        assert_eq!(core.sanitize_name("Hello: World"), "Hello_ World");
-        assert_eq!(
-            core.sanitize_name("  Trim Me Down  "),
-            "Trim Me Down",
-            "Should trim leading and trailing spaces"
-        );
-        assert_eq!(
-            core.sanitize_name("Normal Podcast Name"),
-            "Normal Podcast Name"
-        );
-    }
 
     #[tokio::test]
     async fn test_prepare_episode_path_creates_directories() {

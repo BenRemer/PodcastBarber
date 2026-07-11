@@ -47,9 +47,9 @@ mod tests {
 
     fn create_dummy_job() -> DownloadJob {
         DownloadJob {
-            episode_id: Uuid::new_v4(),
+            uuid: Uuid::new_v4(),
             audio_url: "http://example.com/audio.mp3".to_string(),
-            podcast_title: "Test Podcast".to_string(),
+            folder_name: "Test Podcast".to_string(),
             guid: "test-guid-123".to_string(),
         }
     }
@@ -65,11 +65,11 @@ mod tests {
             10
         );
         let job = create_dummy_job();
-        let expected_id = job.episode_id;
+        let expected_id = job.uuid;
         let result = manager.enqueue_download(job).await;
         assert!(result.is_ok(), "Manager should successfully enqueue the job");
         let received_job = worker.queue_receive.recv().await.expect("Worker should have received a job");
-        assert_eq!(received_job.episode_id, expected_id);
+        assert_eq!(received_job.uuid, expected_id);
     }
 
     #[tokio::test]

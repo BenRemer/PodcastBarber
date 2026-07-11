@@ -8,7 +8,7 @@ async fn test_list_episodes() {
     let feed_url = ctx.create_xml_feed_url("feed.xml").await;
 
     let new_ten = ctx.rss_service
-        .list_episodes(&feed_url, 10)
+        .list_episodes(&feed_url, Some(10))
         .await
         .expect("Service failed to list episodes");
 

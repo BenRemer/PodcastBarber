@@ -86,16 +86,17 @@ impl RSSFeedService {
     }
 
     pub async fn list_episodes(
-        &self, feed_url: &str, limit: usize
+        &self, feed_url: &str, limit: Option<usize>
     ) -> Result<Vec<EpisodeItem>, AppError> {
-        tracing::info!("Listing {} episodes of {}", limit, feed_url);
+        let size = limit.unwrap_or(usize::MAX);
+        tracing::info!("Listing up to {} episodes of {}", size, feed_url);
 
         let channel = self.construct_rss_channel(feed_url).await?; // todo pass in
 
         let items: Vec<EpisodeItem> = channel.items
             .iter()
-            .take(limit)
             .filter_map(|item| Self::extract_metadata(item).ok())
+            .take(size)
             .collect();
 
         Ok(items)
