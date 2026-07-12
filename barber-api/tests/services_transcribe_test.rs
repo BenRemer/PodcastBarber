@@ -1,7 +1,7 @@
 use crate::common::TestContext;
 use barber_api::services::transcribe::core::TranscribeCore;
 use barber_api::utils::get_content_type;
-use reqwest::{Client};
+use reqwest::Client;
 use tokio::fs;
 
 mod common;
@@ -54,6 +54,5 @@ async fn test_core_transcribe() {
             case.name,
             transcript
         );
-        println!("transcript: {}", transcript);
     }
 }

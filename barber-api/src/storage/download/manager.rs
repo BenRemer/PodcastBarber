@@ -14,22 +14,23 @@ impl DownloadManager {
     pub fn new(
         base_dir: PathBuf,
         client: Client,
-        callback: mpsc::Sender<DownloadResult>,
+        download_finished_callback: mpsc::Sender<DownloadResult>,
         buffer: usize,
     ) -> (Self, DownloadWorker) {
-        let (queue_send, queue_receive) = mpsc::channel::<DownloadJob>(buffer);
+        let (download_job_sender, download_job_receiver) = mpsc::channel::<DownloadJob>(buffer);
         let service = Self {
-            job_queue: queue_send,
+            job_queue: download_job_sender,
         };
         let worker = DownloadWorker {
             core: DownloadCore::new(base_dir, client),
-            queue_receive,
-            callback,
+            queue_receive: download_job_receiver,
+            callback: download_finished_callback,
         };
         (service, worker)
     }
 
     pub async fn enqueue_download(&self, job: DownloadJob) -> Result<(), AppError> {
+        tracing::info!("Enqueueing downloaded job {}", job.tracking_id);
         self.job_queue.send(job).await.map_err(|e| {
             tracing::error!("Download queue rejected job: {}", e);
             AppError::InternalServerError("Download queue is full or offline".into())

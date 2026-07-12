@@ -4,3 +4,4 @@ pub mod types;
 mod worker;
 
 pub use transcribe::TranscribeService;
+pub use types::*;

@@ -2,6 +2,7 @@ use crate::constants::{
     BASE_DOWNLOAD_PATH, DATABASE_URL, DEFAULT_BUFFER_QUEUE, DEFAULT_WHISPER_URL,
 };
 use crate::processors::coordinator::AudioCoordinator;
+use crate::services::detection::{DetectionResult, DetectionService};
 use crate::services::episode::EpisodeService;
 use crate::services::podcast::PodcastService;
 use crate::services::rss::RSSFeedService;
@@ -48,6 +49,7 @@ pub async fn run() {
         .unwrap_or(DEFAULT_BUFFER_QUEUE);
     // todo set size
     let transcribe_size = 20;
+    let detection_size = 20;
 
     // Database
     let db = Database::connect(&database_url)
@@ -66,6 +68,8 @@ pub async fn run() {
         mpsc::channel::<DownloadResult>(download_queue_size);
     let (transcribe_result_sender, transcribe_result_receiver) =
         mpsc::channel::<TranscribeResult>(transcribe_size);
+    let (detection_result_sender, detection_result_receiver) =
+        mpsc::channel::<DetectionResult>(detection_size);
 
     // Services
     let (download_handle, download_worker) = DownloadManager::new(
@@ -86,12 +90,17 @@ pub async fn run() {
     let podcast_service = PodcastService::new(db.podcast_repository());
     let episode_service =
         EpisodeService::new(db.episode_repository(), Arc::clone(&download_manager));
+    let (detection_handle, detection_worker) =
+        DetectionService::new(detection_result_sender, detection_size);
+    let detection_service = Arc::new(detection_handle);
 
     // Processors
     let audio_processor = AudioCoordinator::new(
         download_callback_receiver,
         Arc::clone(&whisper_service),
         transcribe_result_receiver,
+        Arc::clone(&detection_service),
+        detection_result_receiver,
         db.episode_repository(),
     );
 
@@ -102,6 +111,12 @@ pub async fn run() {
     tokio::spawn(async move {
         whisper_worker.run().await;
     });
+    tokio::spawn(async move {
+        detection_worker.run().await;
+    });
+    tokio::spawn(async move {
+        audio_processor.run().await;
+    });
 
     // Set state
     let state = AppState::new(
@@ -109,14 +124,14 @@ pub async fn run() {
         Arc::from(rss_service),
         Arc::from(podcast_service),
         Arc::from(episode_service),
-        Arc::from(audio_processor),
+        Arc::from(detection_service),
+        // Arc::from(audio_processor),
     );
 
     // Routes
     let app = Router::new()
         .nest("/api", routes::api_router(state))
         .layer(TraceLayer::new_for_http());
-
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     tracing::info!("Server listening on {}", listener.local_addr().unwrap());
 

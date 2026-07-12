@@ -4,26 +4,31 @@ use crate::common;
 use barber_api::models::episode::{Episode, EpisodeState};
 use barber_api::models::podcast::Podcast;
 use barber_api::processors::coordinator::AudioCoordinator;
+use barber_api::services::detection::{DetectionResult, DetectionService};
 use barber_api::services::episode::EpisodeService;
 use barber_api::services::podcast::PodcastService;
 use barber_api::services::rss::RSSFeedService;
+use barber_api::services::transcribe::TranscribeResult;
 use barber_api::services::transcribe::TranscribeService;
-use barber_api::services::transcribe::types::TranscribeResult;
 use barber_api::storage::download::{DownloadManager, DownloadResult};
 use barber_api::storage::repository::episode::EpisodeRepository;
 use barber_api::storage::repository::podcast::PodcastRepository;
 use barber_api::utils::{generate_episode_uuid, generate_podcast_uuid};
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 use sqlx::SqlitePool;
 use std::sync::Arc;
 use testcontainers::core::{IntoContainerPort, WaitFor};
 use testcontainers::runners::AsyncRunner;
 use testcontainers::{ContainerAsync, GenericImage, ImageExt};
+use tokio::fs;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 pub struct TestContext {
+    pub detection_service: Arc<DetectionService>,
     pub episode_service: EpisodeService,
     pub podcast_service: PodcastService,
     pub rss_service: RSSFeedService,
@@ -38,6 +43,7 @@ impl TestContext {
     const FEED_NAME: &'static str = "feed";
     const AUDIO_NAME: &'static str = "episode";
 
+    // todo break this up into a builder
     pub async fn setup() -> Self {
         // EXTERNAL INFRASTRUCTURE (Network, Disk, DB)
         let mock_server = MockServer::start().await;
@@ -57,6 +63,8 @@ impl TestContext {
         let (result_tx, result_rx) = mpsc::channel::<DownloadResult>(100);
         let (transcribe_result_sender, transcribe_result_receiver) =
             mpsc::channel::<TranscribeResult>(100);
+        let (detection_result_sender, detection_result_receiver) =
+            mpsc::channel::<DetectionResult>(100);
 
         // SERVICES
         let (download_handle, download_worker) = DownloadManager::new(
@@ -79,11 +87,17 @@ impl TestContext {
         );
         let whisper_service = Arc::new(whisper_handle);
 
+        let (detection_handle, detection_worker) =
+            DetectionService::new(detection_result_sender, 100);
+        let detection_service = Arc::new(detection_handle);
+
         // Processors
         let audio_coordinator = AudioCoordinator::new(
             result_rx,
             Arc::clone(&whisper_service),
             transcribe_result_receiver,
+            Arc::clone(&detection_service),
+            detection_result_receiver,
             episode_repository.clone(),
         );
 
@@ -91,12 +105,16 @@ impl TestContext {
         tokio::spawn(async move {
             download_worker.run().await;
         });
-        // tokio::spawn(async move {
-        //     whisper_worker.run().await;
-        // });
+        tokio::spawn(async move {
+            whisper_worker.run().await;
+        });
+        tokio::spawn(async move {
+            detection_worker.run().await;
+        });
 
         // RETURN ASSEMBLED CONTEXT
         Self {
+            detection_service,
             episode_service,
             podcast_service,
             rss_service,
@@ -251,4 +269,27 @@ pub fn get_asset_path(filename: &str) -> std::path::PathBuf {
         .join("tests")
         .join("assets")
         .join(filename)
+}
+
+pub async fn save_json_to_assets<T: Serialize>(filename: &str, data: &T) {
+    let json_string =
+        serde_json::to_string_pretty(data).expect("Failed to serialize data to string");
+
+    let output_path = get_asset_path(filename);
+
+    fs::write(&output_path, json_string)
+        .await
+        .expect(&format!("Failed to save JSON to disk at {:?}", output_path));
+}
+
+pub async fn read_json_from_assets<T: DeserializeOwned>(filename: &str) -> T {
+    let input_path = get_asset_path(filename);
+
+    let json_string = fs::read_to_string(&input_path).await.expect(&format!(
+        "Failed to read JSON file from disk at {:?}",
+        input_path
+    ));
+
+    serde_json::from_str(&json_string)
+        .expect(&format!("Failed to parse JSON from {:?}", input_path))
 }
