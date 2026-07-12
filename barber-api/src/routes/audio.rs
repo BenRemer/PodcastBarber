@@ -3,8 +3,9 @@ use crate::services::transcribe::types::TranscribeJob;
 use crate::{error::AppError, state::AppState};
 use axum::extract::State;
 use axum::http::StatusCode;
+use uuid::Uuid;
 
-pub async fn handle_upload(
+pub async fn handle_episode_transcribe(
     State(state): State<AppState>,
     upload: AudioUpload,
 ) -> Result<StatusCode, AppError> {
@@ -15,6 +16,7 @@ pub async fn handle_upload(
     );
 
     let job = TranscribeJob {
+        tracking_id: Uuid::new_v4(),
         file_name: upload.file_name,
         content_type: upload.content_type,
         data: upload.data,

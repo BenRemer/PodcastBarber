@@ -129,16 +129,16 @@ mod tests {
     #[tokio::test]
     async fn test_download_to_path_success() {
         let mock_server = MockServer::start().await;
-        let fake_audio_bytes = b"fake-mp3-audio-data-stream";
+        let fake_audio_bytes = b"fake-mp3-episode-data-stream";
         Mock::given(method("GET"))
-            .and(path("/audio.mp3"))
+            .and(path("/episode.mp3"))
             .respond_with(ResponseTemplate::new(200).set_body_bytes(fake_audio_bytes.as_slice()))
             .mount(&mock_server)
             .await;
         let temp_dir = tempdir().unwrap();
         let client = Client::new();
         let core = DownloadCore::new(temp_dir.path().to_path_buf(), client);
-        let download_url = format!("{}/audio.mp3", mock_server.uri());
+        let download_url = format!("{}/episode.mp3", mock_server.uri());
         let result_path = core
             .download_to_path(&download_url, "Valid Podcast", "guid-777")
             .await

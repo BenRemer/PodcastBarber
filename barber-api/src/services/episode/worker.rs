@@ -12,15 +12,19 @@ impl EpisodeWorker {
     pub async fn run(mut self) {
         tracing::info!("EpisodeService background state worker starting...");
         while let Some(result) = self.download_callback.recv().await {
-            if let Ok(Some(mut episode)) = self.repo.get(&result.id).await {
+            if let Ok(Some(mut episode)) = self.repo.get(&result.tracking_id).await {
                 match result.status {
                     Ok(path) => {
-                        tracing::info!("Recording success for episode {}", result.id);
+                        tracing::info!("Recording success for episode {}", result.tracking_id);
                         episode.state = EpisodeState::Downloaded;
                         episode.local_file_path = Some(path.to_string_lossy().into_owned());
                     }
                     Err(e) => {
-                        tracing::error!("Recording failure for episode {}: {:?}", result.id, e);
+                        tracing::error!(
+                            "Recording failure for episode {}: {:?}",
+                            result.tracking_id,
+                            e
+                        );
                         episode.state = EpisodeState::Error;
                     }
                 }

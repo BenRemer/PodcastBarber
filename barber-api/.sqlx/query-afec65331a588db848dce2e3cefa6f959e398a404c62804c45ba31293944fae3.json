@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT COUNT(1) FROM podcast WHERE feed_url = ?",
+  "query": "SELECT COUNT(1) FROM podcasts WHERE id = ?",
   "describe": {
     "columns": [
       {
@@ -17,5 +17,5 @@
       false
     ]
   },
-  "hash": "f682ad57fe8f3673c12ec403dc216b62bcbfec841e7d15b48e5948a0c4345483"
+  "hash": "afec65331a588db848dce2e3cefa6f959e398a404c62804c45ba31293944fae3"
 }

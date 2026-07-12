@@ -1,0 +1,110 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                id as \"id!: Uuid\",\n                podcast_id as \"podcast_id!: Uuid\",\n                guid as \"guid!\",\n                title as \"title!\",\n                audio_url as \"audio_url!\",\n                local_file_path,\n                state as \"state!: EpisodeState\",\n                transcript\n            FROM episodes\n            WHERE id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: Uuid",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "episodes",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "podcast_id!: Uuid",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "episodes",
+            "name": "podcast_id"
+          }
+        }
+      },
+      {
+        "name": "guid!",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "episodes",
+            "name": "guid"
+          }
+        }
+      },
+      {
+        "name": "title!",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "episodes",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "name": "audio_url!",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "episodes",
+            "name": "audio_url"
+          }
+        }
+      },
+      {
+        "name": "local_file_path",
+        "ordinal": 5,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "episodes",
+            "name": "local_file_path"
+          }
+        }
+      },
+      {
+        "name": "state!: EpisodeState",
+        "ordinal": 6,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "episodes",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "name": "transcript",
+        "ordinal": 7,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "episodes",
+            "name": "transcript"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "792842768a12078315347880b37d23314e7eed22abcd39e1b3cb25f5d50d3cf1"
+}

@@ -20,6 +20,7 @@ impl TranscribeCore {
         Ok(json)
     }
 
+    /// Send data to whisper and return json transcript
     pub async fn transcribe_audio(
         &self,
         file_name: String,
@@ -35,6 +36,7 @@ impl TranscribeCore {
             .text("model", "base")
             .text("response_format", "verbose_json");
 
+        // let endpoint = format!("{}/episode/transcriptions", self.base_url);
         let endpoint = format!("{}/audio/transcriptions", self.base_url);
         let response = self.client.post(endpoint).multipart(form).send().await?;
 

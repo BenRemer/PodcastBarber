@@ -16,7 +16,7 @@ where
     type Rejection = AppError;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        tracing::info!("Receiving multipart audio upload...");
+        tracing::info!("Receiving multipart episode upload...");
 
         let mut multipart = Multipart::from_request(req, state).await.map_err(|e| {
             tracing::error!("Failed to parse multipart: {}", e);
@@ -29,7 +29,7 @@ where
             .map_err(|_| AppError::InternalServerError("Failed to read stream chunk".into()))?
         {
             if field.name() == Some("file") {
-                let file_name = field.file_name().unwrap_or("upload.audio").to_string();
+                let file_name = field.file_name().unwrap_or("upload.episode").to_string();
                 let content_type = field
                     .content_type()
                     .unwrap_or("application/octet-stream")

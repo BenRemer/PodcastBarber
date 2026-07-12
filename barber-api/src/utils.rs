@@ -16,3 +16,11 @@ pub fn generate_podcast_uuid(feed_url: &str) -> Uuid {
 pub fn generate_episode_uuid(podcast_id: Uuid, guid: &str) -> Uuid {
     Uuid::new_v5(&podcast_id, guid.as_bytes())
 }
+
+pub fn get_content_type(file_bytes: &Vec<u8>) -> String {
+    let content_type = match infer::get(&file_bytes) {
+        Some(kind) => kind.mime_type().to_string(),
+        None => "application/octet-stream".to_string(),
+    };
+    content_type
+}

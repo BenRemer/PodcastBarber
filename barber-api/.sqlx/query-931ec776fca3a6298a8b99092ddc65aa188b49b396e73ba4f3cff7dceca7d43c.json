@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT\n                id as \"id!: uuid::Uuid\",\n                feed_url as \"feed_url!\",\n                title as \"title!\",\n                image_url,\n                description,\n                author\n            FROM podcast\n            ORDER BY title\n            ",
+  "query": "\n            SELECT\n                id as \"id!: uuid::Uuid\",\n                feed_url as \"feed_url!\",\n                title as \"title!\",\n                image_url,\n                description,\n                author\n            FROM podcasts\n            WHERE id = ?\n            ",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcast",
+            "table": "podcasts",
             "name": "id"
           }
         }
@@ -20,7 +20,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcast",
+            "table": "podcasts",
             "name": "feed_url"
           }
         }
@@ -31,7 +31,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcast",
+            "table": "podcasts",
             "name": "title"
           }
         }
@@ -42,7 +42,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcast",
+            "table": "podcasts",
             "name": "image_url"
           }
         }
@@ -53,7 +53,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcast",
+            "table": "podcasts",
             "name": "description"
           }
         }
@@ -64,14 +64,14 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcast",
+            "table": "podcasts",
             "name": "author"
           }
         }
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
       true,
@@ -82,5 +82,5 @@
       true
     ]
   },
-  "hash": "f306ae815fa222eee6f8af16ab9eb46760171d1a1bf47ffa8618bc152ab8d589"
+  "hash": "931ec776fca3a6298a8b99092ddc65aa188b49b396e73ba4f3cff7dceca7d43c"
 }

@@ -33,7 +33,7 @@ impl RSSFeedService {
             .enclosure()
             .map(|enc| enc.url().to_string())
             .ok_or_else(|| {
-                tracing::warn!("Episode '{}' has no audio enclosure", title);
+                tracing::warn!("Episode '{}' has no episode enclosure", title);
                 AppError::NotFound
             })?;
 
@@ -187,7 +187,7 @@ mod tests {
 
     #[test]
     fn test_extract_metadata_missing_enclosure_returns_error() {
-        // Item with a title, but absolutely no enclosure (audio file)
+        // Item with a title, but absolutely no enclosure (episode file)
         let item = ItemBuilder::default()
             .title(Some("Broken Episode".to_string()))
             .build();

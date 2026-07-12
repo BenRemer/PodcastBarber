@@ -82,6 +82,7 @@ async fn test_save_nonexistent_episode() {
         audio_url: "".to_string(),
         local_file_path: None,
         state: EpisodeState::Pending,
+        transcript: None,
     };
 
     let failure = ctx

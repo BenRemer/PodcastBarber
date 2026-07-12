@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        INSERT INTO podcast (\n            id,\n            feed_url,\n            title,\n            image_url,\n            description,\n            author\n        )\n        VALUES (?, ?, ?, ?, ?, ?)\n        ON CONFLICT(id) DO UPDATE SET\n            title = excluded.title,\n            image_url = excluded.image_url,\n            description = excluded.description,\n            author = excluded.author\n        RETURNING\n            id as \"id!: uuid::Uuid\",\n            feed_url as \"feed_url!\",\n            title as \"title!\",\n            image_url,\n            description,\n            author\n        ",
+  "query": "\n        INSERT INTO podcasts (\n            id,\n            feed_url,\n            title,\n            image_url,\n            description,\n            author\n        )\n        VALUES (?, ?, ?, ?, ?, ?)\n        ON CONFLICT(id) DO UPDATE SET\n            title = excluded.title,\n            image_url = excluded.image_url,\n            description = excluded.description,\n            author = excluded.author\n        RETURNING\n            id as \"id!: uuid::Uuid\",\n            feed_url as \"feed_url!\",\n            title as \"title!\",\n            image_url,\n            description,\n            author\n        ",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcast",
+            "table": "podcasts",
             "name": "id"
           }
         }
@@ -20,7 +20,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcast",
+            "table": "podcasts",
             "name": "feed_url"
           }
         }
@@ -31,7 +31,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcast",
+            "table": "podcasts",
             "name": "title"
           }
         }
@@ -42,7 +42,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcast",
+            "table": "podcasts",
             "name": "image_url"
           }
         }
@@ -53,7 +53,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcast",
+            "table": "podcasts",
             "name": "description"
           }
         }
@@ -64,7 +64,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "podcast",
+            "table": "podcasts",
             "name": "author"
           }
         }
@@ -82,5 +82,5 @@
       true
     ]
   },
-  "hash": "e7d6dcb2b2e55b544d4b9968ca30264b369ad7173d7a121b5a6f6c1f7c89473f"
+  "hash": "2d01d3d488106b651df112672c7030ad6a693de2284864c198c35684a36debfd"
 }

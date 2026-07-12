@@ -1,11 +1,9 @@
 use crate::error::AppError;
 use crate::models::episode::Episode;
 use crate::models::podcast::Podcast;
-use crate::services::episode::worker::EpisodeWorker;
-use crate::storage::download::{DownloadJob, DownloadManager, DownloadResult};
+use crate::storage::download::{DownloadJob, DownloadManager};
 use crate::storage::repository::episode::EpisodeRepository;
 use std::sync::Arc;
-use tokio::sync::mpsc;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -18,19 +16,11 @@ impl EpisodeService {
     pub fn new(
         episode_repository: EpisodeRepository,
         download_manager: Arc<DownloadManager>,
-        download_callback: mpsc::Receiver<DownloadResult>,
-    ) -> (Self, EpisodeWorker) {
-        let worker = EpisodeWorker {
-            repo: episode_repository.clone(),
-            download_callback,
-        };
-
-        let service = Self {
+    ) -> Self {
+        Self {
             episode_repository,
             download_manager,
-        };
-
-        (service, worker)
+        }
     }
 
     pub async fn get(&self, id: &Uuid) -> Result<Option<Episode>, AppError> {
@@ -54,7 +44,7 @@ impl EpisodeService {
 
         // Drop the job into the Manager's queue.
         let job = DownloadJob {
-            uuid: saved_episode.id.clone(),
+            tracking_id: saved_episode.id.clone(),
             audio_url: saved_episode.audio_url.clone(),
             folder_name: podcast.id.to_string(),
             guid: saved_episode.guid.clone(),

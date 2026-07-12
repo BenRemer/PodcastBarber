@@ -20,7 +20,7 @@ impl DownloadWorker {
             let _ = self
                 .callback
                 .send(DownloadResult {
-                    id: job.uuid,
+                    tracking_id: job.tracking_id,
                     status,
                 })
                 .await;

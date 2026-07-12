@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                id as \"id!: uuid::Uuid\",\n                feed_url as \"feed_url!\",\n                title as \"title!\",\n                image_url,\n                description,\n                author\n            FROM podcasts\n            ORDER BY title\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: uuid::Uuid",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "podcasts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "feed_url!",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "podcasts",
+            "name": "feed_url"
+          }
+        }
+      },
+      {
+        "name": "title!",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "podcasts",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "name": "image_url",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "podcasts",
+            "name": "image_url"
+          }
+        }
+      },
+      {
+        "name": "description",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "podcasts",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "name": "author",
+        "ordinal": 5,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "podcasts",
+            "name": "author"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "19edf674f23a4e5ea3459a72d320db2e98be3aacdb45076e83f5a3b799114a59"
+}

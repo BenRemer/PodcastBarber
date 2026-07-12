@@ -12,6 +12,7 @@ impl TranscribeWorker {
     pub async fn run(mut self) {
         tracing::info!("Starting Transcribe Worker...");
         while let Some(job) = self.queue_receive.recv().await {
+            let tracking_id = job.tracking_id;
             match self
                 .core
                 .transcribe_audio(job.file_name, job.content_type, job.data)
@@ -22,6 +23,7 @@ impl TranscribeWorker {
                     let _ = self
                         .callback
                         .send(TranscribeResult {
+                            tracking_id,
                             transcription: Some(transcript),
                             error: None,
                         })
@@ -32,6 +34,7 @@ impl TranscribeWorker {
                     let _ = self
                         .callback
                         .send(TranscribeResult {
+                            tracking_id,
                             transcription: None,
                             error: Some(e),
                         })

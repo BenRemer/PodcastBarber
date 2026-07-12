@@ -1,6 +1,7 @@
 use crate::constants::{
     BASE_DOWNLOAD_PATH, DATABASE_URL, DEFAULT_BUFFER_QUEUE, DEFAULT_WHISPER_URL,
 };
+use crate::processors::coordinator::AudioCoordinator;
 use crate::services::episode::EpisodeService;
 use crate::services::podcast::PodcastService;
 use crate::services::rss::RSSFeedService;
@@ -20,6 +21,7 @@ pub mod constants;
 pub mod error;
 pub mod extractors;
 pub mod models;
+pub mod processors;
 pub mod routes;
 pub mod services;
 pub mod state;
@@ -44,6 +46,8 @@ pub async fn run() {
         .ok()
         .and_then(|val| val.parse::<usize>().ok())
         .unwrap_or(DEFAULT_BUFFER_QUEUE);
+    // todo set size
+    let transcribe_size = 20;
 
     // Database
     let db = Database::connect(&database_url)
@@ -60,40 +64,40 @@ pub async fn run() {
     // Background workers
     let (download_callback_sender, download_callback_receiver) =
         mpsc::channel::<DownloadResult>(download_queue_size);
-    // todo set size
-    let transcribe_size = 20;
-    let (transcribe_callback_sender, transcribe_callback_receiver) =
+    let (transcribe_result_sender, transcribe_result_receiver) =
         mpsc::channel::<TranscribeResult>(transcribe_size);
 
     // Services
-    // todo make barber service to use transcribe_callback_receiver
-    let (manager_handle, manager_worker) = DownloadManager::new(
+    let (download_handle, download_worker) = DownloadManager::new(
         PathBuf::from(base_download_path),
         http_client.clone(),
         download_callback_sender,
         download_queue_size,
     );
-    let download_manager = Arc::new(manager_handle);
-    let (whisper_service, whisper_worker) = TranscribeService::new(
+    let download_manager = Arc::new(download_handle);
+    let (whisper_handle, whisper_worker) = TranscribeService::new(
         whisper_url,
         http_client.clone(),
-        transcribe_callback_sender,
+        transcribe_result_sender,
         transcribe_size,
     );
+    let whisper_service = Arc::new(whisper_handle);
     let rss_service = RSSFeedService::new(http_client.clone());
     let podcast_service = PodcastService::new(db.podcast_repository());
-    let (episode_service, episode_worker) = EpisodeService::new(
-        db.episode_repository(),
-        Arc::clone(&download_manager),
+    let episode_service =
+        EpisodeService::new(db.episode_repository(), Arc::clone(&download_manager));
+
+    // Processors
+    let audio_processor = AudioCoordinator::new(
         download_callback_receiver,
+        Arc::clone(&whisper_service),
+        transcribe_result_receiver,
+        db.episode_repository(),
     );
 
     // Spawn background workers
     tokio::spawn(async move {
-        manager_worker.run().await;
-    });
-    tokio::spawn(async move {
-        episode_worker.run().await;
+        download_worker.run().await;
     });
     tokio::spawn(async move {
         whisper_worker.run().await;
@@ -105,6 +109,7 @@ pub async fn run() {
         Arc::from(rss_service),
         Arc::from(podcast_service),
         Arc::from(episode_service),
+        Arc::from(audio_processor),
     );
 
     // Routes

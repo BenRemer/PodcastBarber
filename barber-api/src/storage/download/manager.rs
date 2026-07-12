@@ -46,7 +46,7 @@ mod tests {
 
     fn create_dummy_job() -> DownloadJob {
         DownloadJob {
-            uuid: Uuid::new_v4(),
+            tracking_id: Uuid::new_v4(),
             audio_url: "http://example.com/audio.mp3".to_string(),
             folder_name: "Test Podcast".to_string(),
             guid: "test-guid-123".to_string(),
@@ -60,7 +60,7 @@ mod tests {
         let (manager, mut worker) =
             DownloadManager::new(PathBuf::from("/tmp"), client, callback_tx, 10);
         let job = create_dummy_job();
-        let expected_id = job.uuid;
+        let expected_id = job.tracking_id;
         let result = manager.enqueue_download(job).await;
         assert!(
             result.is_ok(),
@@ -71,7 +71,7 @@ mod tests {
             .recv()
             .await
             .expect("Worker should have received a job");
-        assert_eq!(received_job.uuid, expected_id);
+        assert_eq!(received_job.tracking_id, expected_id);
     }
 
     #[tokio::test]
