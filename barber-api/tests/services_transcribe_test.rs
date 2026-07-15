@@ -20,11 +20,15 @@ async fn test_core_transcribe() {
         expected_phrase: "hitchcock",
     }];
 
-    let ctx = TestContext::setup().await;
-    let (_whisper_container, dynamic_url) = ctx.start_whisper_sidecar().await;
+    let (_container, whisper_url) = TestContext::start_whisper_sidecar().await;
+    let ctx = TestContext::builder()
+        .with_whisper_url(whisper_url.clone())
+        .with_background_workers()
+        .build()
+        .await;
 
     let client = Client::new();
-    let core = TranscribeCore::new(dynamic_url, client);
+    let core = TranscribeCore::new(whisper_url, client);
 
     // Iterate over the test cases
     for case in cases {

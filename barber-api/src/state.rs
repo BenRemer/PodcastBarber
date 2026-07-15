@@ -1,4 +1,3 @@
-use crate::processors::coordinator::AudioCoordinator;
 use crate::services::detection::DetectionService;
 use crate::services::episode::EpisodeService;
 use crate::services::podcast::PodcastService;
@@ -13,7 +12,6 @@ pub struct AppState {
     pub podcast_service: Arc<PodcastService>,
     pub episode_service: Arc<EpisodeService>,
     pub detection_service: Arc<DetectionService>,
-    // pub audio_processor: Arc<AudioCoordinator>,
 }
 
 impl AppState {
@@ -23,7 +21,6 @@ impl AppState {
         podcast_service: Arc<PodcastService>,
         episode_service: Arc<EpisodeService>,
         detection_service: Arc<DetectionService>,
-        // audio_processor: Arc<AudioCoordinator>,
     ) -> Self {
         Self {
             whisper_service,
@@ -31,7 +28,6 @@ impl AppState {
             podcast_service,
             episode_service,
             detection_service,
-            // audio_processor,
         }
     }
 }

@@ -6,7 +6,7 @@ mod common;
 
 #[tokio::test]
 pub async fn test_core() {
-    //let ctx = TestContext::setup().await;
+    // let ctx = TestContext::builder().with_background_workers().build().await;
     let core = DetectionCore::new();
 
     let json: Value = read_json_from_assets("bologna-speech-english.json").await;

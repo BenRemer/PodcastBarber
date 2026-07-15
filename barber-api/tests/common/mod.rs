@@ -4,13 +4,15 @@ use crate::common;
 use barber_api::models::episode::{Episode, EpisodeState};
 use barber_api::models::podcast::Podcast;
 use barber_api::processors::coordinator::AudioCoordinator;
+use barber_api::services::detection::DetectionWorker;
 use barber_api::services::detection::{DetectionResult, DetectionService};
 use barber_api::services::episode::EpisodeService;
 use barber_api::services::podcast::PodcastService;
 use barber_api::services::rss::RSSFeedService;
 use barber_api::services::transcribe::TranscribeResult;
 use barber_api::services::transcribe::TranscribeService;
-use barber_api::storage::download::{DownloadManager, DownloadResult};
+use barber_api::services::transcribe::TranscribeWorker;
+use barber_api::storage::download::{DownloadManager, DownloadResult, DownloadWorker};
 use barber_api::storage::repository::episode::EpisodeRepository;
 use barber_api::storage::repository::podcast::PodcastRepository;
 use barber_api::utils::{generate_episode_uuid, generate_podcast_uuid};
@@ -36,16 +38,41 @@ pub struct TestContext {
     pub pool: SqlitePool,
     pub podcast_repository: PodcastRepository,
     pub episode_repository: EpisodeRepository,
-    pub audio_coordinator: AudioCoordinator,
+
+    // Wrapped in Option so tests can take ownership and run them manually
+    pub audio_coordinator: Option<AudioCoordinator>,
+    pub download_worker: Option<DownloadWorker>,
+    pub whisper_worker: Option<TranscribeWorker>,
+    pub detection_worker: Option<DetectionWorker>,
 }
 
-impl TestContext {
-    const FEED_NAME: &'static str = "feed";
-    const AUDIO_NAME: &'static str = "episode";
+pub struct TestContextBuilder {
+    start_background_workers: bool,
+    whisper_url: Option<String>,
+}
 
-    // todo break this up into a builder
-    pub async fn setup() -> Self {
-        // EXTERNAL INFRASTRUCTURE (Network, Disk, DB)
+impl TestContextBuilder {
+    pub fn new() -> Self {
+        Self {
+            start_background_workers: false,
+            whisper_url: None,
+        }
+    }
+
+    /// Automatically spawn all background workers
+    pub fn with_background_workers(mut self) -> Self {
+        self.start_background_workers = true;
+        self
+    }
+
+    /// Override the Whisper URL
+    pub fn with_whisper_url(mut self, url: impl Into<String>) -> Self {
+        self.whisper_url = Some(url.into());
+        self
+    }
+
+    pub async fn build(self) -> TestContext {
+        // EXTERNAL INFRASTRUCTURE
         let mock_server = MockServer::start().await;
         let temp_dir = tempfile::tempdir().expect("Failed to create temp directory");
         let http_client = reqwest::Client::new();
@@ -59,14 +86,12 @@ impl TestContext {
         let podcast_repository = PodcastRepository::new(pool.clone());
         let episode_repository = EpisodeRepository::new(pool.clone());
 
-        // BACKGROUND WORKERS & CHANNELS
+        // CHANNELS
         let (result_tx, result_rx) = mpsc::channel::<DownloadResult>(100);
-        let (transcribe_result_sender, transcribe_result_receiver) =
-            mpsc::channel::<TranscribeResult>(100);
-        let (detection_result_sender, detection_result_receiver) =
-            mpsc::channel::<DetectionResult>(100);
+        let (transcribe_tx, transcribe_rx) = mpsc::channel::<TranscribeResult>(100);
+        let (detection_tx, detection_rx) = mpsc::channel::<DetectionResult>(100);
 
-        // SERVICES
+        // SERVICES & WORKERS
         let (download_handle, download_worker) = DownloadManager::new(
             temp_dir.path().to_path_buf(),
             http_client.clone(),
@@ -79,41 +104,28 @@ impl TestContext {
         let podcast_service = PodcastService::new(podcast_repository.clone());
         let episode_service =
             EpisodeService::new(episode_repository.clone(), download_manager.clone());
-        let (whisper_handle, whisper_worker) = TranscribeService::new(
-            "http://whisper_sidecar:8000/v1".to_string(),
-            http_client.clone(),
-            transcribe_result_sender,
-            100,
-        );
+
+        let whisper_base_url = self
+            .whisper_url
+            .unwrap_or_else(|| "http://whisper_sidecar:8000/v1".to_string());
+        let (whisper_handle, whisper_worker) =
+            TranscribeService::new(whisper_base_url, http_client.clone(), transcribe_tx, 100);
         let whisper_service = Arc::new(whisper_handle);
 
-        let (detection_handle, detection_worker) =
-            DetectionService::new(detection_result_sender, 100);
+        let (detection_handle, detection_worker) = DetectionService::new(detection_tx, 100);
         let detection_service = Arc::new(detection_handle);
 
-        // Processors
+        // COORDINATOR
         let audio_coordinator = AudioCoordinator::new(
             result_rx,
             Arc::clone(&whisper_service),
-            transcribe_result_receiver,
+            transcribe_rx,
             Arc::clone(&detection_service),
-            detection_result_receiver,
+            detection_rx,
             episode_repository.clone(),
         );
 
-        // START WORKERS
-        tokio::spawn(async move {
-            download_worker.run().await;
-        });
-        tokio::spawn(async move {
-            whisper_worker.run().await;
-        });
-        tokio::spawn(async move {
-            detection_worker.run().await;
-        });
-
-        // RETURN ASSEMBLED CONTEXT
-        Self {
+        let mut ctx = TestContext {
             detection_service,
             episode_service,
             podcast_service,
@@ -122,8 +134,46 @@ impl TestContext {
             pool,
             podcast_repository,
             episode_repository,
-            audio_coordinator,
+            audio_coordinator: Some(audio_coordinator),
+            download_worker: Some(download_worker),
+            whisper_worker: Some(whisper_worker),
+            detection_worker: Some(detection_worker),
+        };
+
+        // START WORKERS IF REQUESTED
+        if self.start_background_workers {
+            if let Some(worker) = ctx.download_worker.take() {
+                tokio::spawn(async move {
+                    worker.run().await;
+                });
+            }
+            if let Some(worker) = ctx.whisper_worker.take() {
+                tokio::spawn(async move {
+                    worker.run().await;
+                });
+            }
+            if let Some(worker) = ctx.detection_worker.take() {
+                tokio::spawn(async move {
+                    worker.run().await;
+                });
+            }
+            if let Some(coordinator) = ctx.audio_coordinator.take() {
+                tokio::spawn(async move {
+                    coordinator.run().await;
+                });
+            }
         }
+
+        ctx
+    }
+}
+
+impl TestContext {
+    const FEED_NAME: &'static str = "feed";
+    const AUDIO_NAME: &'static str = "episode";
+
+    pub fn builder() -> TestContextBuilder {
+        TestContextBuilder::new()
     }
 
     pub async fn create_podcast(
@@ -241,7 +291,7 @@ impl TestContext {
         format!("{}{}", self.mock_server.uri(), unique_path)
     }
 
-    pub async fn start_whisper_sidecar(&self) -> (ContainerAsync<GenericImage>, String) {
+    pub async fn start_whisper_sidecar() -> (ContainerAsync<GenericImage>, String) {
         let whisper_image = GenericImage::new("fedirz/faster-whisper-server", "latest-cuda")
             .with_wait_for(WaitFor::message_on_stderr("Application startup complete"))
             .with_exposed_port(8000.tcp())

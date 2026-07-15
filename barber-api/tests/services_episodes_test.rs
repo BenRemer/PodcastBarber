@@ -6,7 +6,10 @@ mod common;
 
 #[tokio::test]
 async fn test_queue_episode_download() {
-    let ctx = TestContext::setup().await;
+    let ctx = TestContext::builder()
+        .with_background_workers()
+        .build()
+        .await;
     let (podcast, mut episodes) = PodcastFixtureBuilder::new(&ctx)
         .subscribed()
         .with_episodes(1)
@@ -71,7 +74,7 @@ async fn test_queue_episode_download() {
 
 #[tokio::test]
 async fn test_save_nonexistent_episode() {
-    let ctx = TestContext::setup().await;
+    let ctx = TestContext::builder().build().await;
     let podcast = ctx.create_subscribed_podcast(None, None).await;
 
     let episode = Episode {
@@ -95,7 +98,7 @@ async fn test_save_nonexistent_episode() {
 
 #[tokio::test]
 async fn test_get_episode() {
-    let ctx = TestContext::setup().await;
+    let ctx = TestContext::builder().build().await;
     let (_, mut episodes) = PodcastFixtureBuilder::new(&ctx)
         .subscribed()
         .with_episodes(2)
@@ -116,7 +119,7 @@ async fn test_get_episode() {
 
 #[tokio::test]
 async fn test_get_all_episodes() {
-    let ctx = TestContext::setup().await;
+    let ctx = TestContext::builder().build().await;
     let (podcast, _) = PodcastFixtureBuilder::new(&ctx)
         .subscribed()
         .with_episodes(3)
@@ -134,7 +137,7 @@ async fn test_get_all_episodes() {
 
 #[tokio::test]
 async fn test_delete_episode() {
-    let ctx = TestContext::setup().await;
+    let ctx = TestContext::builder().build().await;
     let (podcast, episodes) = PodcastFixtureBuilder::new(&ctx)
         .subscribed()
         .with_episodes(3)

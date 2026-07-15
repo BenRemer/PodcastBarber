@@ -13,7 +13,7 @@ impl DetectionWorker {
         tracing::info!("Starting detection worker...");
         while let Some(job) = self.job_queue.recv().await {
             tracing::info!("Received job: {:?}", job);
-            let id = job.tracking_id;
+            let _id = job.tracking_id;
         }
         tracing::info!("Detection worker ended.");
     }

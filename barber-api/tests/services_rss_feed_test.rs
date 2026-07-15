@@ -4,7 +4,7 @@ mod common;
 
 #[tokio::test]
 async fn test_list_episodes() {
-    let ctx = TestContext::setup().await;
+    let ctx = TestContext::builder().build().await;
     let feed_url = ctx.create_xml_feed_url("feed.xml").await;
 
     let new_ten = ctx

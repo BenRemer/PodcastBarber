@@ -144,7 +144,7 @@ impl AudioCoordinator {
 
     // Detection finished now... todo
     async fn handle_detection(&self, detection_result: DetectionResult) {
-        if let Ok(Some(mut episode)) = self.repo.get(&detection_result.tracking_id).await {
+        if let Ok(Some(mut _episode)) = self.repo.get(&detection_result.tracking_id).await {
             println!("Detected episode {}", detection_result.tracking_id);
         } else {
             tracing::error!("Detection missing episode {}", detection_result.tracking_id);
