@@ -4,6 +4,7 @@
 .env
 .cache/
 downloads/
+.fastembed_cache/
 
 # Database
 *.db 

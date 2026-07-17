@@ -1,6 +1,7 @@
 use crate::error::AppError;
 use reqwest::Client;
 use serde_json::Value;
+use tokio::fs;
 
 #[derive(Clone)]
 pub struct TranscribeCore {
@@ -41,6 +42,18 @@ impl TranscribeCore {
         let response = self.client.post(endpoint).multipart(form).send().await?;
 
         let transcript = response.json::<Value>().await?;
+
+        // Write transcription to file
+        // get with 'docker cp barber-api:/usr/local/bin/downloads/transcript.json .'
+        let json_string =
+            serde_json::to_string_pretty(&transcript).expect("Failed to serialize data to string");
+        fs::create_dir_all("./downloads")
+            .await
+            .expect("Failed to create downloads folder");
+        fs::write("./downloads/transcript.json", json_string)
+            .await
+            .expect("Failed to write to file");
+
         Ok(transcript)
     }
 }
