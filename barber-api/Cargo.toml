@@ -14,7 +14,7 @@ tower-http = { version = "0.7.0", features = ["trace", "cors"] }
 rss = { version = "2.0", features = ["serde"] }
 
 # Audio
-infer = "0.19.0"
+infer = "0.22.0"
 fastembed = "5.17"
 
 # HTTP Client (to talk to the Docker sidecar)

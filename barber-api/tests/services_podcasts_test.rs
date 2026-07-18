@@ -1,12 +1,13 @@
-use crate::common::TestContext;
 use barber_api::models::podcast::Podcast;
+use crate::common::context::TestContext;
+use crate::common::mocks;
 
 mod common;
 
 #[tokio::test]
 async fn test_subscribe_new_podcast() {
     let ctx = TestContext::builder().build().await;
-    let feed_url = ctx.create_xml_feed_url("feed.xml").await;
+    let feed_url = mocks::rss::create_feed(&ctx.mock_server, "feed.xml").await;
     let metadata = ctx
         .rss_service
         .fetch_podcast_metadata(&feed_url)
@@ -32,7 +33,7 @@ async fn test_subscribe_new_podcast() {
 #[tokio::test]
 async fn test_podcast_is_subscribed_url() {
     let ctx = TestContext::builder().build().await;
-    let feed_url = ctx.create_xml_feed_url("feed.xml").await;
+    let feed_url = mocks::rss::create_feed(&ctx.mock_server, "feed.xml").await;
     let metadata = ctx
         .rss_service
         .fetch_podcast_metadata(&feed_url)
@@ -68,7 +69,7 @@ async fn test_podcast_is_subscribed_url() {
 #[tokio::test]
 async fn test_podcast_is_subscribed_id() {
     let ctx = TestContext::builder().build().await;
-    let feed_url = ctx.create_xml_feed_url("feed.xml").await;
+    let feed_url = mocks::rss::create_feed(&ctx.mock_server, "feed.xml").await;
     let metadata = ctx
         .rss_service
         .fetch_podcast_metadata(&feed_url)
@@ -104,7 +105,7 @@ async fn test_podcast_is_subscribed_id() {
 #[tokio::test]
 async fn test_subscribe_podcast_idempotency_prevents_duplicates() {
     let ctx = TestContext::builder().build().await;
-    let feed_url = ctx.create_xml_feed_url("feed.xml").await;
+    let feed_url = mocks::rss::create_feed(&ctx.mock_server, "feed.xml").await;
     let metadata = ctx
         .rss_service
         .fetch_podcast_metadata(&feed_url)

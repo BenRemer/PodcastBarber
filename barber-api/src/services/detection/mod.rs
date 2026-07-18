@@ -8,7 +8,7 @@ mod types;
 mod worker;
 
 pub use chunker::generate_chunks;
-pub use core::{DetectionCore, DetectionConfig};
+pub use core::{DetectionConfig, DetectionCore};
 pub use service::DetectionService;
 pub use types::*;
 pub use worker::DetectionWorker;

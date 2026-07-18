@@ -43,17 +43,22 @@ impl TranscribeCore {
 
         let transcript = response.json::<Value>().await?;
 
+        // Self::save_to_file(&transcript).await;
+
+        Ok(transcript)
+    }
+
+    #[allow(dead_code)]
+    async fn save_to_file(transcript: &Value) {
         // Write transcription to file
         // get with 'docker cp barber-api:/usr/local/bin/downloads/transcript.json .'
         let json_string =
-            serde_json::to_string_pretty(&transcript).expect("Failed to serialize data to string");
+            serde_json::to_string_pretty(transcript).expect("Failed to serialize data to string");
         fs::create_dir_all("./downloads")
             .await
             .expect("Failed to create downloads folder");
         fs::write("./downloads/transcript.json", json_string)
             .await
             .expect("Failed to write to file");
-
-        Ok(transcript)
     }
 }

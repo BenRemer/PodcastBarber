@@ -1,4 +1,4 @@
-use crate::common::TestContext;
+use common::context::TestContext;
 use crate::common::builder::PodcastFixtureBuilder;
 use barber_api::models::episode::{Episode, EpisodeState};
 
@@ -6,13 +6,10 @@ mod common;
 
 #[tokio::test]
 async fn test_queue_episode_download() {
-    let ctx = TestContext::builder()
-        .with_background_workers()
-        .build()
-        .await;
+    let ctx = TestContext::builder().with_workers().build().await;
     let (podcast, mut episodes) = PodcastFixtureBuilder::new(&ctx)
         .subscribed()
-        .with_episodes(1)
+        .episodes(1)
         .build()
         .await;
     let episode = episodes.pop().expect("no episodes");
@@ -75,7 +72,8 @@ async fn test_queue_episode_download() {
 #[tokio::test]
 async fn test_save_nonexistent_episode() {
     let ctx = TestContext::builder().build().await;
-    let podcast = ctx.create_subscribed_podcast(None, None).await;
+    // let podcast = ctx.create_subscribed_podcast(None, None).await;
+    let (podcast, _) = PodcastFixtureBuilder::new(&ctx).subscribed().build().await;
 
     let episode = Episode {
         id: Default::default(),
@@ -101,7 +99,7 @@ async fn test_get_episode() {
     let ctx = TestContext::builder().build().await;
     let (_, mut episodes) = PodcastFixtureBuilder::new(&ctx)
         .subscribed()
-        .with_episodes(2)
+        .episodes(2)
         .build()
         .await;
 
@@ -122,7 +120,7 @@ async fn test_get_all_episodes() {
     let ctx = TestContext::builder().build().await;
     let (podcast, _) = PodcastFixtureBuilder::new(&ctx)
         .subscribed()
-        .with_episodes(3)
+        .episodes(3)
         .build()
         .await;
 
@@ -137,10 +135,10 @@ async fn test_get_all_episodes() {
 
 #[tokio::test]
 async fn test_delete_episode() {
-    let ctx = TestContext::builder().build().await;
+    let ctx = TestContext::builder().with_workers().build().await;
     let (podcast, episodes) = PodcastFixtureBuilder::new(&ctx)
         .subscribed()
-        .with_episodes(3)
+        .episodes(3)
         .build()
         .await;
 

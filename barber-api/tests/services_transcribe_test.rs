@@ -1,8 +1,8 @@
-use crate::common::TestContext;
 use barber_api::services::transcribe::core::TranscribeCore;
 use barber_api::utils::get_content_type;
 use reqwest::Client;
 use tokio::fs;
+use crate::common::mocks;
 
 mod common;
 
@@ -10,22 +10,15 @@ mod common;
 async fn test_core_transcribe() {
     struct TestFile {
         name: &'static str,
-        mime: &'static str,
         expected_phrase: &'static str,
     }
 
     let cases = vec![TestFile {
         name: "bologna-speech-english.wav",
-        mime: "episode/wav",
         expected_phrase: "hitchcock",
     }];
 
-    let (_container, whisper_url) = TestContext::start_whisper_sidecar().await;
-    let ctx = TestContext::builder()
-        .with_whisper_url(whisper_url.clone())
-        .with_background_workers()
-        .build()
-        .await;
+    let (_container, whisper_url) = mocks::whisper::start_sidecar().await;
 
     let client = Client::new();
     let core = TranscribeCore::new(whisper_url, client);

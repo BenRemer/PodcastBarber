@@ -25,8 +25,7 @@ pub struct DetectionCore {
 
 impl DetectionCore {
     pub fn new(config: DetectionConfig) -> Self {
-        let manual_classifier =
-            ManualClassifier::new(config.score.clone());
+        let manual_classifier = ManualClassifier::new(config.score.clone());
 
         Self {
             config,
