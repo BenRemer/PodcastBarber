@@ -1,11 +1,6 @@
-use crate::services::detection::manual::types::{SegmentBoundary, TranscriptChunk};
+use crate::services::detection::types::TranscriptChunk;
 
-// type SegmentBoundary = f64;
-
-pub(crate) fn find_segment_boundaries(
-    chunks: &[TranscriptChunk],
-    block_size: usize,
-) -> Vec<SegmentBoundary> {
+pub(crate) fn find_segment_boundaries(chunks: &[TranscriptChunk], block_size: usize) -> Vec<f64> {
     let k = block_size;
 
     if chunks.len() < k * 2 {
@@ -86,12 +81,7 @@ pub(crate) fn find_segment_boundaries(
     for (i, &depth) in depth_scores.iter().enumerate() {
         // Only allow cuts where we actually computed similarity
         if i >= k && i <= chunks.len() - k && depth > threshold {
-            boundaries.push(SegmentBoundary {
-                chunk_index: i,
-                timestamp: chunks[i - 1].end_time, // Cut happens right at the end of the left block
-                depth_score: depth,
-            });
-            // boundaries.push(chunks[i - 1].end_time);
+            boundaries.push(chunks[i - 1].end_time);
         }
     }
 

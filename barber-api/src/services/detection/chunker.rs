@@ -1,31 +1,18 @@
 use crate::error::AppError;
-use crate::services::detection::manual::scoring::ScoreConfig;
-use crate::services::detection::manual::types::TranscriptChunk;
-use crate::services::detection::manual::{math, scoring};
-use crate::services::detection::types::ProcessedSegment;
+use crate::services::detection::types::TranscriptChunk;
 use fastembed::TextEmbedding;
 use serde_json::Value;
 
-#[derive(Debug)]
-struct RawChunk {
-    pub text: String,
-    pub start_time: f64,
-    pub end_time: f64,
-}
+pub fn generate_chunks(
+    transcript: &Value,
+    chunk_size: f64,
+) -> Result<Vec<TranscriptChunk>, AppError> {
+    struct RawChunk {
+        pub text: String,
+        pub start_time: f64,
+        pub end_time: f64,
+    }
 
-pub fn detect_ads(transcript: &Value) -> Result<Vec<ProcessedSegment>, AppError> {
-    let score_config = ScoreConfig::default();
-    let segment_block_size = 3; // todo allow tuning
-    let duration = transcript["duration"].as_f64().unwrap_or(0.0);
-    let processed_chunks = generate_chunks(transcript, 5.0)?; // todo tuning config
-    let boundaries = math::find_segment_boundaries(&processed_chunks, segment_block_size);
-    let scored_segments =
-        scoring::classify_segments(&score_config, &processed_chunks, &boundaries, duration);
-
-    Ok(scored_segments)
-}
-
-fn generate_chunks(transcript: &Value, chunk_size: f64) -> Result<Vec<TranscriptChunk>, AppError> {
     let mut raw_chunks = Vec::new();
 
     let target_array = transcript

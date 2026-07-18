@@ -14,6 +14,9 @@ impl DetectionWorker {
         while let Some(job) = self.job_queue.recv().await {
             tracing::info!("Received job: {:?}", job);
             let _id = job.tracking_id;
+            // get transcript, generate chunks send through processing
+            // let transcript =
+            // let chunks = generate
         }
         tracing::info!("Detection worker ended.");
     }
