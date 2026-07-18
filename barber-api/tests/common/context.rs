@@ -15,6 +15,7 @@ use barber_api::services::{
 use barber_api::storage::download::DownloadWorker;
 
 use crate::common::builder::TestContextBuilder;
+use barber_api::storage::repository::transcript::TranscriptRepository;
 use barber_api::storage::repository::{episode::EpisodeRepository, podcast::PodcastRepository};
 
 pub struct TestContext {
@@ -24,6 +25,7 @@ pub struct TestContext {
 
     pub podcast_repository: PodcastRepository,
     pub episode_repository: EpisodeRepository,
+    pub transcript_repository: TranscriptRepository,
 
     pub podcast_service: PodcastService,
     pub episode_service: EpisodeService,

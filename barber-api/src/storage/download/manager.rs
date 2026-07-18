@@ -31,6 +31,7 @@ impl DownloadManager {
 
     pub async fn enqueue_download(&self, job: DownloadJob) -> Result<(), AppError> {
         tracing::info!("Enqueueing downloaded job {}", job.tracking_id);
+        println!("Starting download enqueue");
         self.job_queue.send(job).await.map_err(|e| {
             tracing::error!("Download queue rejected job: {}", e);
             AppError::InternalServerError("Download queue is full or offline".into())

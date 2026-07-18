@@ -5,7 +5,7 @@ use axum::{
 };
 use serde_json::json;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AppError {
     BadRequest(String),
     SidecarUnavailable,

@@ -2,6 +2,7 @@ use crate::error::AppError;
 use crate::services::transcribe::core::TranscribeCore;
 use crate::services::transcribe::types::{TranscribeJob, TranscribeResult};
 use crate::services::transcribe::worker::TranscribeWorker;
+use crate::storage::repository::transcript::TranscriptRepository;
 use reqwest::Client;
 use serde_json::Value;
 use tokio::sync::mpsc;
@@ -18,6 +19,7 @@ impl TranscribeService {
         client: Client,
         callback: mpsc::Sender<TranscribeResult>,
         buffer: usize,
+        transcript_repository: TranscriptRepository,
     ) -> (Self, TranscribeWorker) {
         let (queue_send, queue_receive) = mpsc::channel::<TranscribeJob>(buffer);
         let core = TranscribeCore::new(base_url, client);
@@ -26,6 +28,7 @@ impl TranscribeService {
             core: core.clone(),
         };
         let worker = TranscribeWorker {
+            transcript_repository,
             core,
             queue_receive,
             callback,

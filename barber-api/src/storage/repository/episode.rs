@@ -18,15 +18,14 @@ impl EpisodeRepository {
             Episode,
             r#"
             INSERT INTO episodes (
-                id, podcast_id, guid, title, audio_url, local_file_path, state, transcript
+                id, podcast_id, guid, title, audio_url, local_file_path, state
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(podcast_id, guid) DO UPDATE SET
                 title = excluded.title,
                 audio_url = excluded.audio_url,
                 local_file_path = excluded.local_file_path,
-                state = excluded.state,
-                transcript = COALESCE(excluded.transcript, episodes.transcript)
+                state = excluded.state
             RETURNING
                 id as "id!: Uuid",
                 podcast_id as "podcast_id!: Uuid",
@@ -34,8 +33,7 @@ impl EpisodeRepository {
                 title as "title!",
                 audio_url as "audio_url!",
                 local_file_path,
-                state as "state!: EpisodeState",
-                transcript
+                state as "state!: EpisodeState"
             "#,
             episode.id,
             episode.podcast_id,
@@ -43,8 +41,7 @@ impl EpisodeRepository {
             episode.title,
             episode.audio_url,
             episode.local_file_path,
-            episode.state as EpisodeState,
-            episode.transcript
+            episode.state as EpisodeState
         )
         .fetch_one(&self.pool)
         .await
@@ -54,26 +51,6 @@ impl EpisodeRepository {
         })?;
 
         Ok(row)
-    }
-
-    pub async fn update_transcript(&self, id: &Uuid, transcript: &str) -> Result<bool, AppError> {
-        let result = sqlx::query!(
-            r#"
-            UPDATE episodes
-            SET transcript = ?
-            WHERE id = ?
-            "#,
-            transcript,
-            id
-        )
-        .execute(&self.pool)
-        .await
-        .map_err(|e| {
-            tracing::error!("DB update failed for episode transcript {}: {}", id, e);
-            AppError::InternalServerError("Failed to save transcript to database".into())
-        })?;
-
-        Ok(result.rows_affected() > 0)
     }
 
     pub async fn get(&self, uid: &Uuid) -> Result<Option<Episode>, AppError> {
@@ -87,8 +64,7 @@ impl EpisodeRepository {
                 title as "title!",
                 audio_url as "audio_url!",
                 local_file_path,
-                state as "state!: EpisodeState",
-                transcript
+                state as "state!: EpisodeState"
             FROM episodes
             WHERE id = ?
             "#,
@@ -115,8 +91,7 @@ impl EpisodeRepository {
                 title as "title!",
                 audio_url as "audio_url!",
                 local_file_path,
-                state as "state!: EpisodeState",
-                transcript
+                state as "state!: EpisodeState"
             FROM episodes
             WHERE podcast_id = ?
             "#,
@@ -147,8 +122,7 @@ impl EpisodeRepository {
                 title as "title!",
                 audio_url as "audio_url!",
                 local_file_path,
-                state as "state!: EpisodeState",
-                transcript
+                state as "state!: EpisodeState"
             FROM episodes
             WHERE podcast_id = ? AND guid = ?
             "#,

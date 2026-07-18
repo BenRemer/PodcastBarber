@@ -8,6 +8,7 @@ use uuid::Uuid;
 pub enum EpisodeState {
     Pending,
     Downloaded,
+    Transcribed,
     Processing,
     Enhanced,
     Error,
@@ -22,7 +23,6 @@ pub struct Episode {
     pub audio_url: String,
     pub local_file_path: Option<String>,
     pub state: EpisodeState,
-    pub transcript: Option<String>,
 }
 
 #[derive(Serialize, Clone)]
@@ -43,7 +43,6 @@ impl EpisodeItem {
             audio_url: self.audio_url,
             local_file_path: None,
             state: EpisodeState::Pending,
-            transcript: None,
         }
     }
 }

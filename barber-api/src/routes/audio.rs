@@ -16,7 +16,7 @@ pub async fn handle_episode_transcribe(
     );
 
     let job = TranscribeJob {
-        tracking_id: Uuid::new_v4(),
+        episode_id: Uuid::new_v4(),
         file_name: upload.file_name,
         content_type: upload.content_type,
         data: upload.data,

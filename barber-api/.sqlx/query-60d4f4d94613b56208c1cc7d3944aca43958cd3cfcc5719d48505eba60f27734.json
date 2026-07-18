@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT\n                id as \"id!: Uuid\",\n                podcast_id as \"podcast_id!: Uuid\",\n                guid as \"guid!\",\n                title as \"title!\",\n                audio_url as \"audio_url!\",\n                local_file_path,\n                state as \"state!: EpisodeState\",\n                transcript\n            FROM episodes\n            WHERE podcast_id = ? AND guid = ?\n            ",
+  "query": "\n            SELECT\n                id as \"id!: Uuid\",\n                podcast_id as \"podcast_id!: Uuid\",\n                guid as \"guid!\",\n                title as \"title!\",\n                audio_url as \"audio_url!\",\n                local_file_path,\n                state as \"state!: EpisodeState\"\n            FROM episodes\n            WHERE id = ?\n            ",
   "describe": {
     "columns": [
       {
@@ -79,21 +79,10 @@
             "name": "state"
           }
         }
-      },
-      {
-        "name": "transcript",
-        "ordinal": 7,
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "episodes",
-            "name": "transcript"
-          }
-        }
       }
     ],
     "parameters": {
-      "Right": 2
+      "Right": 1
     },
     "nullable": [
       false,
@@ -102,9 +91,8 @@
       false,
       false,
       true,
-      false,
-      true
+      false
     ]
   },
-  "hash": "4650c3da693762e584c25fd37412264f817f1fabda139e47b81465f5d32dbf08"
+  "hash": "60d4f4d94613b56208c1cc7d3944aca43958cd3cfcc5719d48505eba60f27734"
 }

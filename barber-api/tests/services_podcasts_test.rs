@@ -1,6 +1,6 @@
-use barber_api::models::podcast::Podcast;
 use crate::common::context::TestContext;
 use crate::common::mocks;
+use barber_api::models::podcast::Podcast;
 
 mod common;
 

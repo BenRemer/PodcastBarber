@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            INSERT INTO episodes (\n                id, podcast_id, guid, title, audio_url, local_file_path, state, transcript\n            )\n            VALUES (?, ?, ?, ?, ?, ?, ?, ?)\n            ON CONFLICT(podcast_id, guid) DO UPDATE SET\n                title = excluded.title,\n                audio_url = excluded.audio_url,\n                local_file_path = excluded.local_file_path,\n                state = excluded.state,\n                transcript = COALESCE(excluded.transcript, episodes.transcript)\n            RETURNING\n                id as \"id!: Uuid\",\n                podcast_id as \"podcast_id!: Uuid\",\n                guid as \"guid!\",\n                title as \"title!\",\n                audio_url as \"audio_url!\",\n                local_file_path,\n                state as \"state!: EpisodeState\",\n                transcript\n            ",
+  "query": "\n            SELECT\n                id as \"id!: Uuid\",\n                podcast_id as \"podcast_id!: Uuid\",\n                guid as \"guid!\",\n                title as \"title!\",\n                audio_url as \"audio_url!\",\n                local_file_path,\n                state as \"state!: EpisodeState\"\n            FROM episodes\n            WHERE podcast_id = ? AND guid = ?\n            ",
   "describe": {
     "columns": [
       {
@@ -79,21 +79,10 @@
             "name": "state"
           }
         }
-      },
-      {
-        "name": "transcript",
-        "ordinal": 7,
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "episodes",
-            "name": "transcript"
-          }
-        }
       }
     ],
     "parameters": {
-      "Right": 8
+      "Right": 2
     },
     "nullable": [
       false,
@@ -102,9 +91,8 @@
       false,
       false,
       true,
-      false,
-      true
+      false
     ]
   },
-  "hash": "cf60ca12de33e23662b27b3c6ec876a0f7fbcfffa6fe2ad6f8d23ae09b5863f5"
+  "hash": "bb66bfc6857703dbcf46d5f13d8f4feb589353e56f4a8ea434d475844b2c4c96"
 }

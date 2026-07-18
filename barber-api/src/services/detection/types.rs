@@ -1,13 +1,15 @@
+use crate::error::AppError;
 use uuid::Uuid;
 
 #[derive(Clone, Debug)]
 pub struct DetectionJob {
-    pub tracking_id: Uuid,
+    pub episode_id: Uuid,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct DetectionResult {
-    pub tracking_id: Uuid,
+    pub episode_id: Uuid,
+    pub error: Option<AppError>,
 }
 
 #[derive(Debug)]

@@ -84,14 +84,18 @@ pub async fn run() {
         http_client.clone(),
         transcribe_result_sender,
         transcribe_size,
+        db.transcript_repository(),
     );
     let whisper_service = Arc::new(whisper_handle);
     let rss_service = RSSFeedService::new(http_client.clone());
     let podcast_service = PodcastService::new(db.podcast_repository());
     let episode_service =
         EpisodeService::new(db.episode_repository(), Arc::clone(&download_manager));
-    let (detection_handle, detection_worker) =
-        DetectionService::new(detection_result_sender, detection_size);
+    let (detection_handle, detection_worker) = DetectionService::new(
+        db.transcript_repository(),
+        detection_result_sender,
+        detection_size,
+    );
     let detection_service = Arc::new(detection_handle);
 
     // Processors
@@ -102,6 +106,8 @@ pub async fn run() {
         Arc::clone(&detection_service),
         detection_result_receiver,
         db.episode_repository(),
+        db.transcript_repository(),
+        None,
     );
 
     // Spawn background workers

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT\n                id as \"id!: Uuid\",\n                podcast_id as \"podcast_id!: Uuid\",\n                guid as \"guid!\",\n                title as \"title!\",\n                audio_url as \"audio_url!\",\n                local_file_path,\n                state as \"state!: EpisodeState\",\n                transcript\n            FROM episodes\n            WHERE id = ?\n            ",
+  "query": "\n            INSERT INTO episodes (\n                id, podcast_id, guid, title, audio_url, local_file_path, state\n            )\n            VALUES (?, ?, ?, ?, ?, ?, ?)\n            ON CONFLICT(podcast_id, guid) DO UPDATE SET\n                title = excluded.title,\n                audio_url = excluded.audio_url,\n                local_file_path = excluded.local_file_path,\n                state = excluded.state\n            RETURNING\n                id as \"id!: Uuid\",\n                podcast_id as \"podcast_id!: Uuid\",\n                guid as \"guid!\",\n                title as \"title!\",\n                audio_url as \"audio_url!\",\n                local_file_path,\n                state as \"state!: EpisodeState\"\n            ",
   "describe": {
     "columns": [
       {
@@ -79,21 +79,10 @@
             "name": "state"
           }
         }
-      },
-      {
-        "name": "transcript",
-        "ordinal": 7,
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "episodes",
-            "name": "transcript"
-          }
-        }
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 7
     },
     "nullable": [
       false,
@@ -102,9 +91,8 @@
       false,
       false,
       true,
-      false,
-      true
+      false
     ]
   },
-  "hash": "792842768a12078315347880b37d23314e7eed22abcd39e1b3cb25f5d50d3cf1"
+  "hash": "65d7220cc64df9156a5cb33825669582b9957e2258b8d8379710f18b61d608e2"
 }

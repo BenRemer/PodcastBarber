@@ -1,8 +1,8 @@
+use crate::common::mocks;
 use barber_api::services::transcribe::core::TranscribeCore;
 use barber_api::utils::get_content_type;
 use reqwest::Client;
 use tokio::fs;
-use crate::common::mocks;
 
 mod common;
 

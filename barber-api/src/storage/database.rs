@@ -1,5 +1,6 @@
 use crate::storage::repository::episode::EpisodeRepository;
 use crate::storage::repository::podcast::PodcastRepository;
+use crate::storage::repository::transcript::TranscriptRepository;
 use sqlx::SqlitePool;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use std::str::FromStr;
@@ -23,5 +24,9 @@ impl Database {
 
     pub fn episode_repository(&self) -> EpisodeRepository {
         EpisodeRepository::new(self.pool.clone())
+    }
+
+    pub fn transcript_repository(&self) -> TranscriptRepository {
+        TranscriptRepository::new(self.pool.clone())
     }
 }

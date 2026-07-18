@@ -1,6 +1,8 @@
+use crate::common::context::TestContext;
+use crate::common::mocks;
 use barber_api::models::episode::{Episode, EpisodeState};
 use barber_api::models::podcast::Podcast;
-use barber_api::processors::coordinator::AudioCoordinator;
+use barber_api::processors::coordinator::{AudioCoordinator, PipelineEvent};
 use barber_api::services::detection::DetectionService;
 use barber_api::services::episode::EpisodeService;
 use barber_api::services::podcast::PodcastService;
@@ -9,17 +11,17 @@ use barber_api::services::transcribe::TranscribeService;
 use barber_api::storage::download::DownloadManager;
 use barber_api::storage::repository::episode::EpisodeRepository;
 use barber_api::storage::repository::podcast::PodcastRepository;
+use barber_api::storage::repository::transcript::TranscriptRepository;
 use barber_api::utils::{generate_episode_uuid, generate_podcast_uuid};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 use wiremock::MockServer;
-use crate::common::context::TestContext;
-use crate::common::mocks;
 
 pub struct TestContextBuilder {
     start_workers: bool,
     whisper_url: Option<String>,
+    coordinator_watcher_tx: Option<mpsc::Sender<PipelineEvent>>,
 }
 
 impl TestContextBuilder {
@@ -27,9 +29,11 @@ impl TestContextBuilder {
         Self {
             start_workers: false,
             whisper_url: None,
+            coordinator_watcher_tx: None,
         }
     }
 
+    // todo split up by worker
     pub fn with_workers(mut self) -> Self {
         self.start_workers = true;
         self
@@ -37,6 +41,14 @@ impl TestContextBuilder {
 
     pub fn whisper_url(mut self, url: impl Into<String>) -> Self {
         self.whisper_url = Some(url.into());
+        self
+    }
+
+    pub fn with_pipeline_events(
+        mut self,
+        coordinator_watcher_tx: mpsc::Sender<PipelineEvent>,
+    ) -> Self {
+        self.coordinator_watcher_tx = Some(coordinator_watcher_tx);
         self
     }
 
@@ -49,6 +61,7 @@ impl TestContextBuilder {
         sqlx::migrate!("./migrations").run(&pool).await.unwrap();
         let podcast_repository = PodcastRepository::new(pool.clone());
         let episode_repository = EpisodeRepository::new(pool.clone());
+        let transcript_repository = TranscriptRepository::new(pool.clone());
 
         let http = reqwest::Client::new();
 
@@ -69,10 +82,16 @@ impl TestContextBuilder {
         let whisper_url = self
             .whisper_url
             .unwrap_or("http://whisper_sidecar:8000/v1".into());
-        let (whisper, whisper_worker) =
-            TranscribeService::new(whisper_url, http.clone(), transcribe_tx, 100);
+        let (whisper, whisper_worker) = TranscribeService::new(
+            whisper_url,
+            http.clone(),
+            transcribe_tx,
+            100,
+            transcript_repository.clone(),
+        );
         let whisper = Arc::new(whisper);
-        let (detection, detection_worker) = DetectionService::new(detect_tx, 100);
+        let (detection, detection_worker) =
+            DetectionService::new(transcript_repository.clone(), detect_tx, 100);
         let detection = Arc::new(detection);
         let coordinator = AudioCoordinator::new(
             download_rx,
@@ -81,6 +100,8 @@ impl TestContextBuilder {
             detection.clone(),
             detect_rx,
             episode_repository.clone(),
+            transcript_repository.clone(),
+            self.coordinator_watcher_tx.clone(),
         );
 
         let mut ctx = TestContext {
@@ -88,6 +109,7 @@ impl TestContextBuilder {
             pool,
             podcast_repository,
             episode_repository,
+            transcript_repository,
             podcast_service,
             episode_service,
             rss_service,
@@ -219,7 +241,6 @@ impl<'a> EpisodeFixtureBuilder<'a> {
             audio_url: audio,
             local_file_path: None,
             state: self.state,
-            transcript: None,
         };
         self.ctx
             .episode_repository

@@ -1,6 +1,6 @@
-use common::context::TestContext;
 use crate::common::builder::PodcastFixtureBuilder;
 use barber_api::models::episode::{Episode, EpisodeState};
+use common::context::TestContext;
 
 mod common;
 
@@ -83,7 +83,6 @@ async fn test_save_nonexistent_episode() {
         audio_url: "".to_string(),
         local_file_path: None,
         state: EpisodeState::Pending,
-        transcript: None,
     };
 
     let failure = ctx
