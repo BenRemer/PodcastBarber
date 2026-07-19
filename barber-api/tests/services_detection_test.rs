@@ -21,4 +21,6 @@ pub async fn test_core() {
             println!("after {:#?}", segments.get(index + 1));
         }
     }
+
+    assert!(segments.len() > 4);
 }

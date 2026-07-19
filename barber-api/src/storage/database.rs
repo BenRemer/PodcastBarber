@@ -1,3 +1,4 @@
+use crate::storage::repository::detection::DetectionRepository;
 use crate::storage::repository::episode::EpisodeRepository;
 use crate::storage::repository::podcast::PodcastRepository;
 use crate::storage::repository::transcript::TranscriptRepository;
@@ -28,5 +29,9 @@ impl Database {
 
     pub fn transcript_repository(&self) -> TranscriptRepository {
         TranscriptRepository::new(self.pool.clone())
+    }
+
+    pub fn detection_repository(&self) -> DetectionRepository {
+        DetectionRepository::new(self.pool.clone())
     }
 }

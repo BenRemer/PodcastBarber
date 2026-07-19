@@ -9,6 +9,7 @@ use barber_api::services::podcast::PodcastService;
 use barber_api::services::rss::RSSFeedService;
 use barber_api::services::transcribe::TranscribeService;
 use barber_api::storage::download::DownloadManager;
+use barber_api::storage::repository::detection::DetectionRepository;
 use barber_api::storage::repository::episode::EpisodeRepository;
 use barber_api::storage::repository::podcast::PodcastRepository;
 use barber_api::storage::repository::transcript::TranscriptRepository;
@@ -62,6 +63,7 @@ impl TestContextBuilder {
         let podcast_repository = PodcastRepository::new(pool.clone());
         let episode_repository = EpisodeRepository::new(pool.clone());
         let transcript_repository = TranscriptRepository::new(pool.clone());
+        let detection_repository = DetectionRepository::new(pool.clone());
 
         let http = reqwest::Client::new();
 
@@ -90,8 +92,12 @@ impl TestContextBuilder {
             transcript_repository.clone(),
         );
         let whisper = Arc::new(whisper);
-        let (detection, detection_worker) =
-            DetectionService::new(transcript_repository.clone(), detect_tx, 100);
+        let (detection, detection_worker) = DetectionService::new(
+            transcript_repository.clone(),
+            detection_repository.clone(),
+            detect_tx,
+            100,
+        );
         let detection = Arc::new(detection);
         let coordinator = AudioCoordinator::new(
             download_rx,
@@ -110,6 +116,7 @@ impl TestContextBuilder {
             podcast_repository,
             episode_repository,
             transcript_repository,
+            detection_repository,
             podcast_service,
             episode_service,
             rss_service,
@@ -144,6 +151,8 @@ pub struct PodcastFixtureBuilder<'a> {
 
     title: String,
     subscribed: bool,
+    feed: Option<String>,
+    audio: Option<&'a str>,
     episodes: usize,
 }
 
@@ -153,6 +162,8 @@ impl<'a> PodcastFixtureBuilder<'a> {
             ctx,
             title: "Fixture Podcast".into(),
             subscribed: false,
+            feed: None,
+            audio: None,
             episodes: 0,
         }
     }
@@ -172,8 +183,19 @@ impl<'a> PodcastFixtureBuilder<'a> {
         self
     }
 
+    pub fn feed(mut self, file_name: String) -> Self {
+        self.feed = Some(file_name);
+        self
+    }
+
+    pub fn audio(mut self, file_name: &'a str) -> Self {
+        self.audio = Some(file_name);
+        self
+    }
+
     pub async fn build(self) -> (Podcast, Vec<Episode>) {
-        let feed_url = mocks::rss::create_feed(&self.ctx.mock_server, "feed.xml").await;
+        let feed = self.feed.unwrap_or("feed.xml".into());
+        let feed_url = mocks::rss::create_feed(&self.ctx.mock_server, &feed).await;
         let id = generate_podcast_uuid(&feed_url);
         let mut podcast = Podcast {
             id,
@@ -197,6 +219,7 @@ impl<'a> PodcastFixtureBuilder<'a> {
             episodes.push(
                 EpisodeFixtureBuilder::new(self.ctx)
                     .podcast(podcast.clone())
+                    .audio(self.audio.clone())
                     .build()
                     .await,
             );
@@ -210,6 +233,7 @@ pub struct EpisodeFixtureBuilder<'a> {
     ctx: &'a TestContext,
 
     podcast: Option<Podcast>,
+    audio: Option<&'a str>,
     state: EpisodeState,
     title: String,
 }
@@ -220,6 +244,7 @@ impl<'a> EpisodeFixtureBuilder<'a> {
             ctx,
             podcast: None,
             state: EpisodeState::Pending,
+            audio: None,
             title: "Fixture Episode".into(),
         }
     }
@@ -229,10 +254,15 @@ impl<'a> EpisodeFixtureBuilder<'a> {
         self
     }
 
+    pub fn audio(mut self, file_name: Option<&'a str>) -> Self {
+        self.audio = file_name;
+        self
+    }
+
     pub async fn build(self) -> Episode {
         let podcast = self.podcast.unwrap();
 
-        let audio = mocks::audio::create(&self.ctx.mock_server).await;
+        let audio = mocks::audio::create(&self.ctx.mock_server, self.audio).await;
         let episode = Episode {
             id: generate_episode_uuid(podcast.id, &Uuid::new_v4().to_string()),
             podcast_id: podcast.id,

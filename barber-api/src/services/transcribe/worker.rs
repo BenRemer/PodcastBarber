@@ -32,15 +32,15 @@ impl TranscribeWorker {
                     // write to repo
                     match self.transcript_repository.upsert(transcript).await {
                         Ok(transcript) => {
-                            self.send_result(episode_id, Some(transcript), None).await;
+                            self.send_result(episode_id, None).await;
                         }
                         Err(e) => {
-                            self.send_result(episode_id, None, Some(e)).await;
+                            self.send_result(episode_id, Some(e)).await;
                         }
                     }
                 }
                 Err(e) => {
-                    self.send_result(episode_id, None, Some(e)).await;
+                    self.send_result(episode_id, Some(e)).await;
                 }
             }
         }
@@ -50,14 +50,12 @@ impl TranscribeWorker {
     async fn send_result(
         &self,
         episode_id: Uuid,
-        transcription: Option<Transcript>,
         error: Option<AppError>,
     ) {
         let _ = self
             .callback
             .send(TranscribeResult {
                 episode_id,
-                transcription,
                 error,
             })
             .await;

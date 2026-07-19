@@ -2,22 +2,12 @@ use crate::common;
 use uuid::Uuid;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, ResponseTemplate};
-// pub async fn create(server: &wiremock::MockServer) -> String {
-//     let audio_path = format!("/audio-{}.mp3", Uuid::new_v4());
-//
-//     Mock::given(method("GET"))
-//         .and(path(audio_path.clone()))
-//         .respond_with(ResponseTemplate::new(200).set_body_bytes(vec![0u8; 1024]))
-//         .mount(server)
-//         .await;
-//
-//     format!("{}{}", server.uri(), audio_path)
-// }
 
-pub async fn create(server: &wiremock::MockServer) -> String {
+pub async fn create(server: &wiremock::MockServer, audio: Option<&str>) -> String {
     let audio_path = format!("/audio-{}.wav", Uuid::new_v4());
+    let audio = audio.unwrap_or("bologna-speech-english.wav");
 
-    let asset_path = common::get_asset_path("bologna-speech-english.wav");
+    let asset_path = common::get_asset_path(audio);
 
     let audio_bytes = tokio::fs::read(asset_path)
         .await

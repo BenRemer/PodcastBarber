@@ -21,6 +21,12 @@ pub struct ProcessedSegment {
     pub is_ad: bool,
 }
 
+#[derive(Debug)]
+pub struct Detection {
+    pub episode_id: Uuid,
+    pub segments: Vec<ProcessedSegment>,
+}
+
 pub struct Segment {
     pub start_time: f64,
     pub end_time: f64,

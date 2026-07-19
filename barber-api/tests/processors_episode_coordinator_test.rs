@@ -18,6 +18,7 @@ async fn test_full_audio_pipeline() {
         .await;
     let (podcast, mut episodes) = PodcastFixtureBuilder::new(&ctx)
         .subscribed()
+        .audio("svs.mp3")
         .episodes(1)
         .build()
         .await;
@@ -57,4 +58,23 @@ async fn test_full_audio_pipeline() {
         .await
         .unwrap()
         .expect("transcript missing");
+
+    let detection = ctx
+        .detection_repository
+        .get_detection_by_episode(&episode.id)
+        .await
+        .unwrap()
+        .expect("detection missing");
+
+    for segment in &detection.segments {
+        if segment.is_ad {
+            println!("{:#?}", segment);
+        }
+    }
+
+    assert!(!detection.segments.is_empty());
+
+    let segments = detection.segments;
+    assert!(segments.len() > 4);
 }
+

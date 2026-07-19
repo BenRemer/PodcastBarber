@@ -1,5 +1,4 @@
 use crate::error::AppError;
-use crate::models::transcript::Transcript;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -12,7 +11,6 @@ pub struct TranscribeJob {
 
 pub struct TranscribeResult {
     pub episode_id: Uuid,
-    pub transcription: Option<Transcript>,
     pub error: Option<AppError>,
 }
 

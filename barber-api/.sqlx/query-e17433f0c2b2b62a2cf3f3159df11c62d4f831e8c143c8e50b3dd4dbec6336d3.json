@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO detection_segments (\n                id,\n                episode_id,\n                start_time,\n                end_time,\n                text,\n                ad_score,\n                is_ad\n            )\n            VALUES (?, ?, ?, ?, ?, ?, ?)\n\n            ON CONFLICT(episode_id, start_time, end_time)\n            DO UPDATE SET\n                text = excluded.text,\n                ad_score = excluded.ad_score,\n                is_ad = excluded.is_ad\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "e17433f0c2b2b62a2cf3f3159df11c62d4f831e8c143c8e50b3dd4dbec6336d3"
+}

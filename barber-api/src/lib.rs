@@ -93,6 +93,7 @@ pub async fn run() {
         EpisodeService::new(db.episode_repository(), Arc::clone(&download_manager));
     let (detection_handle, detection_worker) = DetectionService::new(
         db.transcript_repository(),
+        db.detection_repository(),
         detection_result_sender,
         detection_size,
     );

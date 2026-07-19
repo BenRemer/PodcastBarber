@@ -65,7 +65,7 @@ impl AudioCoordinator {
                     if let Some(watcher) = &self.event_sender {
                         let _ = watcher.send(PipelineEvent::DownloadComplete(dl_result.tracking_id)).await;
                     }
-                    self.handle_download(dl_result).await;
+                    self.handle_after_download(dl_result).await;
                 }
                 // Transcribe complete
                 Some(tr_result) = self.transcribe_callback.recv() => {
@@ -74,7 +74,7 @@ impl AudioCoordinator {
                         let _ = watcher.send(PipelineEvent::TranscriptionComplete(tr_result
                             .episode_id, tr_result.error.clone())).await;
                     }
-                    self.handle_transcription(tr_result).await;
+                    self.handle_after_transcription(tr_result).await;
                 }
                 // Detection Complete
                 Some(detection_result) = self.detection_callback.recv() => {
@@ -83,7 +83,7 @@ impl AudioCoordinator {
                         let _ = watcher.send(PipelineEvent::DetectionComplete(detection_result
                             .episode_id, detection_result.error.clone())).await;
                     }
-                    self.handle_detection(detection_result).await;
+                    self.handle_after_detection(detection_result).await;
                 }
                 else => {
                     tracing::info!("All worker channels closed. Shutting down Coordinator.");
@@ -94,7 +94,7 @@ impl AudioCoordinator {
     }
 
     /// Set db to downloaded and start transcription
-    async fn handle_download(&self, dl_result: DownloadResult) {
+    async fn handle_after_download(&self, dl_result: DownloadResult) {
         if let Ok(Some(mut episode)) = self.episode_repository.get(&dl_result.tracking_id).await {
             match dl_result.status {
                 Ok(path) => {
@@ -138,60 +138,51 @@ impl AudioCoordinator {
     }
 
     /// Set DB to transcribed and send to detection
-    async fn handle_transcription(&self, tr_result: TranscribeResult) {
-        match tr_result.transcription {
-            Some(_) => {
-                tracing::info!("Transcribe success for episode {}", tr_result.episode_id);
-                match self.episode_repository.get(&tr_result.episode_id).await {
-                    Ok(Some(mut episode)) => {
-                        episode.state = EpisodeState::Transcribed;
-                        if let Err(e) = self.episode_repository.upsert(episode).await {
-                            tracing::error!(
-                                "Failed updating episode {} after transcription: {:?}",
-                                tr_result.episode_id,
-                                e
-                            );
-                            return;
-                        }
+    async fn handle_after_transcription(&self, tr_result: TranscribeResult) {
+        let episode_id = tr_result.episode_id;
 
-                        let job = DetectionJob {
-                            episode_id: tr_result.episode_id,
-                        };
-                        tracing::info!(
-                            "Sending episode {} to detection queue",
-                            tr_result.episode_id
-                        );
-                        if let Err(e) = self.detection_service.detect_ads(job).await {
-                            tracing::error!(
-                                "Failed queueing detection {}: {:?}",
-                                tr_result.episode_id,
-                                e
-                            );
-                        }
-                    }
-                    Ok(None) => {
-                        tracing::error!(
-                            "Episode {} missing after transcription",
-                            tr_result.episode_id
-                        );
-                    }
-                    Err(e) => {
-                        tracing::error!("Failed loading episode {}: {:?}", tr_result.episode_id, e);
-                    }
-                }
+        if let Some(_) = tr_result.error {
+            tracing::error!(
+                "Transcription failed for {}: {:?}",
+                episode_id,
+                tr_result.error
+            );
+            return;
+        };
+
+        tracing::info!("Transcribe success for episode {}", episode_id);
+        let mut episode = match self.episode_repository.get(&episode_id).await {
+            Ok(Some(ep)) => ep,
+            Ok(None) => {
+                tracing::error!("Episode {} missing after transcription", episode_id);
+                return;
             }
-            None => {
-                tracing::error!(
-                    "Transcription failed for {}: {:?}",
-                    tr_result.episode_id,
-                    tr_result.error
-                );
+            Err(e) => {
+                tracing::error!("Failed loading episode {}: {:?}", episode_id, e);
+                return;
             }
+        };
+
+        episode.state = EpisodeState::Transcribed;
+        if let Err(e) = self.episode_repository.upsert(episode).await {
+            tracing::error!(
+                "Failed updating episode {} after transcription: {:?}",
+                episode_id,
+                e
+            );
+            return;
+        }
+
+        let job = DetectionJob { episode_id };
+        tracing::info!("Sending episode {} to detection queue", episode_id);
+
+        if let Err(e) = self.detection_service.detect_ads(job).await {
+            tracing::error!("Failed queueing detection {}: {:?}", episode_id, e);
         }
     }
 
     // Detection finished now... todo
-    async fn handle_detection(&self, detection_result: DetectionResult) {
+    async fn handle_after_detection(&self, detection_result: DetectionResult) {
         if let Ok(Some(mut _episode)) = self
             .transcript_repository // todo needs to be detection repo
             .get_by_episode_id(&detection_result.episode_id)
