@@ -5,6 +5,7 @@
 .cache/
 downloads/
 .fastembed_cache/
+svs.mp3
 
 # Database
 *.db 
