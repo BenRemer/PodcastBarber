@@ -3,6 +3,21 @@ use crate::services::detection::types::TranscriptChunk;
 use fastembed::TextEmbedding;
 use serde_json::Value;
 
+pub trait TranscriptChunker: Send + Sync {
+    fn chunk(&self, transcript: &Value, chunk_size: f64) -> Result<Vec<TranscriptChunk>, AppError>;
+}
+
+pub struct DefaultChunker;
+impl TranscriptChunker for DefaultChunker {
+    fn chunk(
+        &self,
+        transcript_data: &Value,
+        duration: f64,
+    ) -> Result<Vec<TranscriptChunk>, AppError> {
+        generate_chunks(transcript_data, duration)
+    }
+}
+
 pub fn generate_chunks(
     transcript: &Value,
     chunk_size: f64,

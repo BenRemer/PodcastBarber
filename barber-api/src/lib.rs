@@ -53,6 +53,7 @@ pub async fn run() {
     let detection_size = 20;
     let download_concurrency_limit = 10;
     let transcribe_concurrency_limit = 10;
+    let detection_concurrency_limit = 10;
 
     // Database
     let db = Database::connect(&database_url)
@@ -103,9 +104,10 @@ pub async fn run() {
         EpisodeService::new(db.episode_repository(), Arc::clone(&download_manager));
     let (detection_handle, detection_worker) = DetectionService::new(
         Arc::new(db.transcript_repository()),
-        db.detection_repository(),
+        Arc::new(db.detection_repository()),
         detection_result_sender,
         detection_size,
+        detection_concurrency_limit,
     );
     let detection_service = Arc::new(detection_handle);
 

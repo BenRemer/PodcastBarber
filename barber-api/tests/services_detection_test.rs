@@ -1,5 +1,5 @@
 use crate::common::read_json_from_assets;
-use barber_api::services::detection::{DetectionConfig, DetectionCore, generate_chunks};
+use barber_api::services::detection::{DetectionConfig, DetectionCore, Detector, generate_chunks};
 use serde_json::Value;
 
 mod common;

@@ -18,13 +18,12 @@ impl TranscribeWorker {
     pub async fn run(mut self) {
         tracing::info!("Starting Transcribe Worker...");
 
-        let core = Arc::new(self.core);
         let semaphore = Arc::new(Semaphore::new(self.concurrency_limit));
 
         while let Some(job) = self.queue_receive.recv().await {
             tracing::info!("Transcribe job received: {:?}", job);
 
-            let core_clone = core.clone();
+            let core_clone = self.core.clone();
             let callback_clone = self.callback.clone();
             let repo_clone = self.transcript_repository.clone();
             let permit = semaphore.clone().acquire_owned().await.unwrap();

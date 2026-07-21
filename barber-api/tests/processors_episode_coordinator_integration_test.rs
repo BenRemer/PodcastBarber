@@ -3,6 +3,7 @@ mod common;
 use crate::common::builder::PodcastFixtureBuilder;
 use crate::common::mocks;
 use barber_api::processors::coordinator::PipelineEvent;
+use barber_api::storage::repository::detection::DetectionStore;
 use barber_api::storage::repository::transcript::TranscriptStore;
 use common::context::TestContext;
 use tokio::sync::mpsc;

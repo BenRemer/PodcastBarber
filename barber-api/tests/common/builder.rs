@@ -112,9 +112,10 @@ impl TestContextBuilder {
         let whisper = Arc::new(whisper);
         let (detection, detection_worker) = DetectionService::new(
             Arc::new(transcript_repository.clone()),
-            detection_repository.clone(),
+            Arc::new(detection_repository.clone()),
             detect_tx,
             100,
+            self.concurrency_limit.unwrap_or(10),
         );
         let detection = Arc::new(detection);
         let coordinator = AudioCoordinator::new(

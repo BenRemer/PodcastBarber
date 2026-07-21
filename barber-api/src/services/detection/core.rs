@@ -3,6 +3,26 @@ use crate::services::detection::math::find_segment_boundaries;
 use crate::services::detection::segmenter::create_segments;
 use crate::services::detection::types::{ProcessedSegment, TranscriptChunk};
 
+pub trait Detector: Send + Sync {
+    fn detect_ads(&self, chunks: &[TranscriptChunk]) -> Vec<ProcessedSegment>;
+}
+
+impl Detector for DetectionCore {
+    fn detect_ads(&self, chunks: &[TranscriptChunk]) -> Vec<ProcessedSegment> {
+        let boundaries = find_segment_boundaries(chunks, self.config.boundary_size);
+
+        let segments = create_segments(chunks, &boundaries);
+
+        // Manual processing
+        let processed_segments = segments
+            .into_iter()
+            .map(|segment| self.manual_classifier.classify(segment))
+            .collect();
+
+        processed_segments
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct DetectionConfig {
     pub boundary_size: usize,
@@ -31,19 +51,5 @@ impl DetectionCore {
             config,
             manual_classifier,
         }
-    }
-
-    pub fn detect_ads(&self, chunks: &[TranscriptChunk]) -> Vec<ProcessedSegment> {
-        let boundaries = find_segment_boundaries(chunks, self.config.boundary_size);
-
-        let segments = create_segments(chunks, &boundaries);
-
-        // Manual processing
-        let processed_segments = segments
-            .into_iter()
-            .map(|segment| self.manual_classifier.classify(segment))
-            .collect();
-
-        processed_segments
     }
 }
