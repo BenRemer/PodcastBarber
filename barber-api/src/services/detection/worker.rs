@@ -3,11 +3,12 @@ use crate::services::detection::core::DetectionCore;
 use crate::services::detection::types::{DetectionJob, DetectionResult};
 use crate::services::detection::{Detection, generate_chunks};
 use crate::storage::repository::detection::DetectionRepository;
-use crate::storage::repository::transcript::TranscriptRepository;
+use crate::storage::repository::transcript::TranscriptStore;
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
 pub struct DetectionWorker {
-    pub transcript_repository: TranscriptRepository,
+    pub transcript_repository: Arc<dyn TranscriptStore>,
     pub detection_repository: DetectionRepository,
     pub core: DetectionCore,
     pub job_queue: mpsc::Receiver<DetectionJob>,

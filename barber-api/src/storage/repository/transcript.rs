@@ -1,8 +1,15 @@
 use crate::{error::AppError, models::transcript::Transcript};
+use async_trait::async_trait;
 
 use serde_json::Value;
 use sqlx::SqlitePool;
 use uuid::Uuid;
+
+#[async_trait]
+pub trait TranscriptStore: Send + Sync {
+    async fn upsert(&self, transcript: Transcript) -> Result<Transcript, AppError>;
+    async fn get_by_episode_id(&self, episode_id: &Uuid) -> Result<Option<Transcript>, AppError>;
+}
 
 #[derive(Clone)]
 pub struct TranscriptRepository {
@@ -14,6 +21,12 @@ struct TranscriptRow {
     id: Uuid,
     episode_id: Uuid,
     data: String,
+}
+
+impl TranscriptRepository {
+    pub fn new(pool: SqlitePool) -> Self {
+        Self { pool }
+    }
 }
 
 impl TranscriptRow {
@@ -32,12 +45,9 @@ impl TranscriptRow {
     }
 }
 
-impl TranscriptRepository {
-    pub fn new(pool: SqlitePool) -> Self {
-        Self { pool }
-    }
-
-    pub async fn upsert(&self, transcript: Transcript) -> Result<Transcript, AppError> {
+#[async_trait]
+impl TranscriptStore for TranscriptRepository {
+    async fn upsert(&self, transcript: Transcript) -> Result<Transcript, AppError> {
         let data = serde_json::to_string(&transcript.data).map_err(|e| {
             tracing::error!("Failed serializing transcript: {}", e);
 
@@ -77,10 +87,7 @@ impl TranscriptRepository {
         row.into_model()
     }
 
-    pub async fn get_by_episode_id(
-        &self,
-        episode_id: &Uuid,
-    ) -> Result<Option<Transcript>, AppError> {
+    async fn get_by_episode_id(&self, episode_id: &Uuid) -> Result<Option<Transcript>, AppError> {
         let row = sqlx::query_as::<_, TranscriptRow>(
             r#"
                 SELECT

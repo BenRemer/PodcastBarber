@@ -3,7 +3,8 @@ use crate::services::detection::core::{DetectionConfig, DetectionCore};
 use crate::services::detection::types::{DetectionJob, DetectionResult};
 use crate::services::detection::worker::DetectionWorker;
 use crate::storage::repository::detection::DetectionRepository;
-use crate::storage::repository::transcript::TranscriptRepository;
+use crate::storage::repository::transcript::TranscriptStore;
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
 pub struct DetectionService {
@@ -12,7 +13,7 @@ pub struct DetectionService {
 
 impl DetectionService {
     pub fn new(
-        transcript_repository: TranscriptRepository,
+        transcript_repository: Arc<dyn TranscriptStore>,
         detection_repository: DetectionRepository,
         callback: mpsc::Sender<DetectionResult>,
         buffer: usize,

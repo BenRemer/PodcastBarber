@@ -7,6 +7,7 @@ use crate::services::episode::EpisodeService;
 use crate::services::podcast::PodcastService;
 use crate::services::rss::RSSFeedService;
 use crate::services::transcribe::TranscribeService;
+use crate::services::transcribe::core::TranscribeCore;
 use crate::services::transcribe::types::TranscribeResult;
 use crate::state::AppState;
 use crate::storage::database::Database;
@@ -51,6 +52,7 @@ pub async fn run() {
     let transcribe_size = 20;
     let detection_size = 20;
     let download_concurrency_limit = 10;
+    let transcribe_concurrency_limit = 10;
 
     // Database
     let db = Database::connect(&database_url)
@@ -73,31 +75,34 @@ pub async fn run() {
         mpsc::channel::<DetectionResult>(detection_size);
 
     // Services
-    let core = Arc::new(DownloadCore::new(
+    let download_core = Arc::new(DownloadCore::new(
         PathBuf::from(base_download_path),
         http_client.clone(),
     ));
     let (download_handle, download_worker) = DownloadManager::new(
-        core,
+        download_core,
         download_callback_sender,
         download_queue_size,
         download_concurrency_limit,
     );
     let download_manager = Arc::new(download_handle);
+
+    let transcribe_core = Arc::new(TranscribeCore::new(whisper_url, http_client.clone()));
     let (whisper_handle, whisper_worker) = TranscribeService::new(
-        whisper_url,
-        http_client.clone(),
+        transcribe_core,
         transcribe_result_sender,
         transcribe_size,
-        db.transcript_repository(),
+        transcribe_concurrency_limit,
+        Arc::new(db.transcript_repository()),
     );
     let whisper_service = Arc::new(whisper_handle);
+
     let rss_service = RSSFeedService::new(http_client.clone());
     let podcast_service = PodcastService::new(db.podcast_repository());
     let episode_service =
         EpisodeService::new(db.episode_repository(), Arc::clone(&download_manager));
     let (detection_handle, detection_worker) = DetectionService::new(
-        db.transcript_repository(),
+        Arc::new(db.transcript_repository()),
         db.detection_repository(),
         detection_result_sender,
         detection_size,
@@ -112,7 +117,7 @@ pub async fn run() {
         Arc::clone(&detection_service),
         detection_result_receiver,
         db.episode_repository(),
-        db.transcript_repository(),
+        Arc::new(db.transcript_repository()),
         None,
     );
 

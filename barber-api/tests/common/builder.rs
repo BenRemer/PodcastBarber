@@ -8,6 +8,7 @@ use barber_api::services::episode::EpisodeService;
 use barber_api::services::podcast::PodcastService;
 use barber_api::services::rss::RSSFeedService;
 use barber_api::services::transcribe::TranscribeService;
+use barber_api::services::transcribe::core::TranscribeCore;
 use barber_api::storage::download::{DownloadCore, DownloadManager, Downloader};
 use barber_api::storage::repository::detection::DetectionRepository;
 use barber_api::storage::repository::episode::EpisodeRepository;
@@ -92,22 +93,25 @@ impl TestContextBuilder {
             self.concurrency_limit.unwrap_or(10),
         );
         let download = Arc::new(download);
+
         let rss_service = RSSFeedService::new(http.clone());
         let podcast_service = PodcastService::new(podcast_repository.clone());
         let episode_service = EpisodeService::new(episode_repository.clone(), download.clone());
+
         let whisper_url = self
             .whisper_url
             .unwrap_or("http://whisper_sidecar:8000/v1".into());
+        let transcribe_core = Arc::new(TranscribeCore::new(whisper_url, http.clone()));
         let (whisper, whisper_worker) = TranscribeService::new(
-            whisper_url,
-            http.clone(),
+            transcribe_core,
             transcribe_tx,
             100,
-            transcript_repository.clone(),
+            self.concurrency_limit.unwrap_or(10),
+            Arc::new(transcript_repository.clone()),
         );
         let whisper = Arc::new(whisper);
         let (detection, detection_worker) = DetectionService::new(
-            transcript_repository.clone(),
+            Arc::new(transcript_repository.clone()),
             detection_repository.clone(),
             detect_tx,
             100,
@@ -120,7 +124,7 @@ impl TestContextBuilder {
             detection.clone(),
             detect_rx,
             episode_repository.clone(),
-            transcript_repository.clone(),
+            Arc::new(transcript_repository.clone()),
             self.coordinator_watcher_tx.clone(),
         );
 

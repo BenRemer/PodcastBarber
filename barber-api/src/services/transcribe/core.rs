@@ -1,28 +1,24 @@
 use crate::error::AppError;
+use async_trait::async_trait;
 use reqwest::Client;
 use serde_json::Value;
 use tokio::fs;
 
-#[derive(Clone)]
-pub struct TranscribeCore {
-    pub(crate) base_url: String,
-    pub(crate) client: Client,
+#[async_trait]
+pub trait Transcriber: Send + Sync {
+    async fn transcribe_audio(
+        &self,
+        file_name: String,
+        content_type: String,
+        data: bytes::Bytes,
+    ) -> Result<Value, AppError>;
+
+    async fn check_health(&self) -> Result<Value, AppError>;
 }
 
-impl TranscribeCore {
-    pub fn new(base_url: String, client: Client) -> Self {
-        Self { base_url, client }
-    }
-
-    pub async fn check_health(&self) -> Result<Value, AppError> {
-        let endpoint = format!("{}/models", self.base_url);
-        let response = self.client.get(&endpoint).send().await?;
-        let json = response.json::<Value>().await?;
-        Ok(json)
-    }
-
-    /// Send data to whisper and return json transcript
-    pub async fn transcribe_audio(
+#[async_trait]
+impl Transcriber for TranscribeCore {
+    async fn transcribe_audio(
         &self,
         file_name: String,
         content_type: String,
@@ -46,6 +42,25 @@ impl TranscribeCore {
         // Self::save_to_file(&transcript).await;
 
         Ok(transcript)
+    }
+
+    async fn check_health(&self) -> Result<Value, AppError> {
+        let endpoint = format!("{}/models", self.base_url);
+        let response = self.client.get(&endpoint).send().await?;
+        let json = response.json::<Value>().await?;
+        Ok(json)
+    }
+}
+
+#[derive(Clone)]
+pub struct TranscribeCore {
+    pub(crate) base_url: String,
+    pub(crate) client: Client,
+}
+
+impl TranscribeCore {
+    pub fn new(base_url: String, client: Client) -> Self {
+        Self { base_url, client }
     }
 
     #[allow(dead_code)]

@@ -5,7 +5,7 @@ use crate::services::transcribe::TranscribeService;
 use crate::services::transcribe::types::{TranscribeJob, TranscribeResult};
 use crate::storage::download::DownloadResult;
 use crate::storage::repository::episode::EpisodeRepository;
-use crate::storage::repository::transcript::TranscriptRepository;
+use crate::storage::repository::transcript::TranscriptStore;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -24,7 +24,7 @@ pub struct AudioCoordinator {
     pub detection_service: Arc<DetectionService>,
     pub detection_callback: mpsc::Receiver<DetectionResult>,
     pub episode_repository: EpisodeRepository,
-    pub transcript_repository: TranscriptRepository,
+    pub transcript_repository: Arc<dyn TranscriptStore>,
     pub event_sender: Option<mpsc::Sender<PipelineEvent>>,
 }
 
@@ -37,7 +37,7 @@ impl AudioCoordinator {
         detection_service: Arc<DetectionService>,
         detection_callback: mpsc::Receiver<DetectionResult>,
         episode_repository: EpisodeRepository,
-        transcript_repository: TranscriptRepository,
+        transcript_repository: Arc<dyn TranscriptStore>,
         event_sender: Option<mpsc::Sender<PipelineEvent>>,
     ) -> Self {
         Self {
