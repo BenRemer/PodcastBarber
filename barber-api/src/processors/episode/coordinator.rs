@@ -4,6 +4,7 @@ use crate::services::detection::{DetectionJob, DetectionResult, DetectionService
 use crate::services::transcribe::TranscribeService;
 use crate::services::transcribe::types::{TranscribeJob, TranscribeResult};
 use crate::storage::download::DownloadResult;
+use crate::storage::repository::detection::DetectionStore;
 use crate::storage::repository::episode::EpisodeRepository;
 use crate::storage::repository::transcript::TranscriptStore;
 use std::sync::Arc;
@@ -25,6 +26,7 @@ pub struct AudioCoordinator {
     pub detection_callback: mpsc::Receiver<DetectionResult>,
     pub episode_repository: EpisodeRepository,
     pub transcript_repository: Arc<dyn TranscriptStore>,
+    pub detection_repository: Arc<dyn DetectionStore>,
     pub event_sender: Option<mpsc::Sender<PipelineEvent>>,
 }
 
@@ -38,6 +40,7 @@ impl AudioCoordinator {
         detection_callback: mpsc::Receiver<DetectionResult>,
         episode_repository: EpisodeRepository,
         transcript_repository: Arc<dyn TranscriptStore>,
+        detection_repository: Arc<dyn DetectionStore>,
         event_sender: Option<mpsc::Sender<PipelineEvent>>,
     ) -> Self {
         Self {
@@ -48,6 +51,7 @@ impl AudioCoordinator {
             detection_callback,
             episode_repository,
             transcript_repository,
+            detection_repository,
             event_sender,
         }
     }
@@ -62,28 +66,29 @@ impl AudioCoordinator {
                 Some(dl_result) = self.download_callback.recv() => {
                     tracing::info!("Download of episode {} finished, \
                         sending to get transcribed.", dl_result.tracking_id);
-                    if let Some(watcher) = &self.event_sender {
-                        let _ = watcher.send(PipelineEvent::DownloadComplete(dl_result.tracking_id)).await;
-                    }
+                    let id = dl_result.tracking_id;
                     self.handle_after_download(dl_result).await;
+                    if let Some(watcher) = &self.event_sender {
+                        let _ = watcher.send(PipelineEvent::DownloadComplete(id)).await;
+                    }
                 }
                 // Transcribe complete
                 Some(tr_result) = self.transcribe_callback.recv() => {
                     tracing::info!("Transcription {} finished.", tr_result.episode_id);
+                    self.handle_after_transcription(&tr_result).await;
                     if let Some(watcher) = &self.event_sender {
                         let _ = watcher.send(PipelineEvent::TranscriptionComplete(tr_result
-                            .episode_id, tr_result.error.clone())).await;
+                            .episode_id, tr_result.error)).await;
                     }
-                    self.handle_after_transcription(tr_result).await;
                 }
                 // Detection Complete
                 Some(detection_result) = self.detection_callback.recv() => {
                     tracing::info!("Detection of {} finished.", detection_result.episode_id);
+                    self.handle_after_detection(&detection_result).await;
                     if let Some(watcher) = &self.event_sender {
                         let _ = watcher.send(PipelineEvent::DetectionComplete(detection_result
                             .episode_id, detection_result.error.clone())).await;
                     }
-                    self.handle_after_detection(detection_result).await;
                 }
                 else => {
                     tracing::info!("All worker channels closed. Shutting down Coordinator.");
@@ -130,7 +135,7 @@ impl AudioCoordinator {
     }
 
     /// Set DB to transcribed and send to detection
-    async fn handle_after_transcription(&self, tr_result: TranscribeResult) {
+    async fn handle_after_transcription(&self, tr_result: &TranscribeResult) {
         let episode_id = tr_result.episode_id;
 
         if let Some(_) = tr_result.error {
@@ -143,24 +148,13 @@ impl AudioCoordinator {
         };
 
         tracing::info!("Transcribe success for episode {}", episode_id);
-        let mut episode = match self.episode_repository.get(&episode_id).await {
-            Ok(Some(ep)) => ep,
-            Ok(None) => {
-                tracing::error!("Episode {} missing after transcription", episode_id);
-                return;
-            }
-            Err(e) => {
-                tracing::error!("Failed loading episode {}: {:?}", episode_id, e);
-                return;
-            }
-        };
-
-        episode.state = EpisodeState::Transcribed;
-        if let Err(e) = self.episode_repository.upsert(episode).await {
+        if !self
+            .update_episode(&episode_id, EpisodeState::Transcribed)
+            .await
+        {
             tracing::error!(
-                "Failed updating episode {} after transcription: {:?}",
-                episode_id,
-                e
+                "Failed to update episode {} for transcribed tracking",
+                episode_id
             );
             return;
         }
@@ -174,15 +168,41 @@ impl AudioCoordinator {
     }
 
     // Detection finished now... todo
-    async fn handle_after_detection(&self, detection_result: DetectionResult) {
-        if let Ok(Some(mut _episode)) = self
-            .transcript_repository // todo needs to be detection repo
-            .get_by_episode_id(&detection_result.episode_id)
+    async fn handle_after_detection(&self, detection_result: &DetectionResult) {
+        let episode_id = &detection_result.episode_id;
+        if detection_result.error.is_some() {
+            tracing::error!("Detection failed for episode {}", episode_id);
+            return;
+        }
+
+        if !self
+            .update_episode(episode_id, EpisodeState::Detected)
             .await
         {
-            println!("Detected episode {}", detection_result.episode_id);
-        } else {
-            tracing::error!("Detection missing episode {}", detection_result.episode_id);
+            tracing::error!(
+                "Failed to update episode {} for detected tracking",
+                episode_id
+            );
+            return;
         }
+    }
+
+    async fn update_episode(&self, episode_id: &Uuid, state: EpisodeState) -> bool {
+        let Ok(Some(mut episode)) = self.episode_repository.get(episode_id).await else {
+            tracing::info!("Episode {} not found.", episode_id);
+            return false;
+        };
+
+        episode.state = state;
+        if let Err(e) = self.episode_repository.upsert(episode).await {
+            tracing::error!(
+                "Failed updating episode {} after detection: {:?}",
+                episode_id,
+                e
+            );
+            return false;
+        }
+
+        true
     }
 }

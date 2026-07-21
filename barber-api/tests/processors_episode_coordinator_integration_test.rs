@@ -2,6 +2,7 @@ mod common;
 
 use crate::common::builder::PodcastFixtureBuilder;
 use crate::common::mocks;
+use barber_api::models::episode::EpisodeState;
 use barber_api::processors::coordinator::PipelineEvent;
 use barber_api::storage::repository::detection::DetectionStore;
 use barber_api::storage::repository::transcript::TranscriptStore;
@@ -36,19 +37,38 @@ async fn test_full_audio_pipeline() {
     while let Some(event) = event_rx.recv().await {
         match event {
             PipelineEvent::DownloadComplete(id) if id == episode.id => {
-                println!("download done");
+                let episode = ctx
+                    .episode_repository
+                    .get(&id)
+                    .await
+                    .unwrap()
+                    .expect("no episode");
+                assert_eq!(EpisodeState::Downloaded, episode.state);
             }
             PipelineEvent::TranscriptionComplete(id, error) if id == episode.id => {
                 if let Some(error) = error {
                     panic!("Failure {:?}", error);
                 }
-                println!("transcription done");
+                let episode = ctx
+                    .episode_repository
+                    .get(&id)
+                    .await
+                    .unwrap()
+                    .expect("no episode");
+                assert_eq!(EpisodeState::Transcribed, episode.state);
             }
             PipelineEvent::DetectionComplete(id, error) if id == episode.id => {
                 if let Some(error) = error {
                     panic!("Failure {:?}", error);
                 }
-                println!("detection done");
+                let episode = ctx
+                    .episode_repository
+                    .get(&id)
+                    .await
+                    .unwrap()
+                    .expect("no episode");
+                assert_eq!(EpisodeState::Detected, episode.state);
+
                 break;
             }
             _ => {}

@@ -120,6 +120,7 @@ pub async fn run() {
         detection_result_receiver,
         db.episode_repository(),
         Arc::new(db.transcript_repository()),
+        Arc::new(db.detection_repository()),
         None,
     );
 

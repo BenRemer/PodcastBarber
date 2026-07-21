@@ -126,6 +126,7 @@ impl TestContextBuilder {
             detect_rx,
             episode_repository.clone(),
             Arc::new(transcript_repository.clone()),
+            Arc::new(detection_repository.clone()),
             self.coordinator_watcher_tx.clone(),
         );
 
