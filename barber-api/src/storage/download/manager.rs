@@ -1,8 +1,7 @@
 use crate::error::AppError;
-use crate::storage::download::core::DownloadCore;
+use crate::storage::download::core::Downloader;
 use crate::storage::download::{DownloadJob, DownloadResult, DownloadWorker};
-use reqwest::Client;
-use std::path::PathBuf;
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
 #[derive(Clone)]
@@ -12,19 +11,20 @@ pub struct DownloadManager {
 
 impl DownloadManager {
     pub fn new(
-        base_dir: PathBuf,
-        client: Client,
+        core: Arc<dyn Downloader>,
         download_finished_callback: mpsc::Sender<DownloadResult>,
         buffer: usize,
+        concurrency_limit: usize,
     ) -> (Self, DownloadWorker) {
         let (download_job_sender, download_job_receiver) = mpsc::channel::<DownloadJob>(buffer);
         let service = Self {
             job_queue: download_job_sender,
         };
         let worker = DownloadWorker {
-            core: DownloadCore::new(base_dir, client),
+            core,
             queue_receive: download_job_receiver,
             callback: download_finished_callback,
+            concurrency_limit,
         };
         (service, worker)
     }
@@ -41,6 +41,7 @@ impl DownloadManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::storage::download::DownloadCore;
     use std::path::PathBuf;
     use tokio::sync::mpsc;
     use uuid::Uuid;
@@ -58,8 +59,8 @@ mod tests {
     async fn test_enqueue_download_success() {
         let (callback_tx, _callback_rx) = mpsc::channel(10);
         let client = reqwest::Client::new();
-        let (manager, mut worker) =
-            DownloadManager::new(PathBuf::from("/tmp"), client, callback_tx, 10);
+        let core = Arc::new(DownloadCore::new(PathBuf::from("/tmp"), client));
+        let (manager, mut worker) = DownloadManager::new(core, callback_tx, 10, 5);
         let job = create_dummy_job();
         let expected_id = job.tracking_id;
         let result = manager.enqueue_download(job).await;
@@ -79,8 +80,8 @@ mod tests {
     async fn test_enqueue_fails_when_worker_is_offline() {
         let (callback_tx, _callback_rx) = mpsc::channel(10);
         let client = reqwest::Client::new();
-        let (manager, worker) =
-            DownloadManager::new(PathBuf::from("/tmp"), client, callback_tx, 10);
+        let core = Arc::new(DownloadCore::new(PathBuf::from("/tmp"), client));
+        let (manager, worker) = DownloadManager::new(core, callback_tx, 10, 2);
         // Simulate a catastrophic crash: drop the worker so the receiver channel closes!
         drop(worker);
         let result = manager.enqueue_download(create_dummy_job()).await;

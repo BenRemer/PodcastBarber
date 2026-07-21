@@ -95,7 +95,8 @@ impl AudioCoordinator {
 
     /// Set db to downloaded and start transcription
     async fn handle_after_download(&self, dl_result: DownloadResult) {
-        let Ok(Some(mut episode)) = self.episode_repository.get(&dl_result.tracking_id).await else {
+        let Ok(Some(mut episode)) = self.episode_repository.get(&dl_result.tracking_id).await
+        else {
             tracing::info!("Episode {} not found.", dl_result.tracking_id);
             return;
         };
@@ -103,7 +104,11 @@ impl AudioCoordinator {
         let path = match dl_result.status {
             Ok(path) => path,
             Err(err) => {
-                tracing::error!("Download failed for episode {}: {:?}", dl_result.tracking_id, err);
+                tracing::error!(
+                    "Download failed for episode {}: {:?}",
+                    dl_result.tracking_id,
+                    err
+                );
                 episode.state = EpisodeState::Error;
                 let _ = self.episode_repository.upsert(episode).await;
                 return;

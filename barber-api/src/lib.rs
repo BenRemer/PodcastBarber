@@ -10,7 +10,7 @@ use crate::services::transcribe::TranscribeService;
 use crate::services::transcribe::types::TranscribeResult;
 use crate::state::AppState;
 use crate::storage::database::Database;
-use crate::storage::download::{DownloadManager, DownloadResult};
+use crate::storage::download::{DownloadCore, DownloadManager, DownloadResult};
 use axum::Router;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -50,6 +50,7 @@ pub async fn run() {
     // todo set size
     let transcribe_size = 20;
     let detection_size = 20;
+    let download_concurrency_limit = 10;
 
     // Database
     let db = Database::connect(&database_url)
@@ -72,11 +73,15 @@ pub async fn run() {
         mpsc::channel::<DetectionResult>(detection_size);
 
     // Services
-    let (download_handle, download_worker) = DownloadManager::new(
+    let core = Arc::new(DownloadCore::new(
         PathBuf::from(base_download_path),
         http_client.clone(),
+    ));
+    let (download_handle, download_worker) = DownloadManager::new(
+        core,
         download_callback_sender,
         download_queue_size,
+        download_concurrency_limit,
     );
     let download_manager = Arc::new(download_handle);
     let (whisper_handle, whisper_worker) = TranscribeService::new(
@@ -111,6 +116,7 @@ pub async fn run() {
         None,
     );
 
+    // todo graceful shutdown
     // Spawn background workers
     tokio::spawn(async move {
         download_worker.run().await;

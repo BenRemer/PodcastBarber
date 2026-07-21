@@ -8,7 +8,7 @@ use barber_api::services::episode::EpisodeService;
 use barber_api::services::podcast::PodcastService;
 use barber_api::services::rss::RSSFeedService;
 use barber_api::services::transcribe::TranscribeService;
-use barber_api::storage::download::DownloadManager;
+use barber_api::storage::download::{DownloadCore, DownloadManager, Downloader};
 use barber_api::storage::repository::detection::DetectionRepository;
 use barber_api::storage::repository::episode::EpisodeRepository;
 use barber_api::storage::repository::podcast::PodcastRepository;
@@ -23,6 +23,9 @@ pub struct TestContextBuilder {
     start_workers: bool,
     whisper_url: Option<String>,
     coordinator_watcher_tx: Option<mpsc::Sender<PipelineEvent>>,
+    concurrency_limit: Option<usize>,
+    // todo move to its own builder
+    download_core: Option<Arc<dyn Downloader>>,
 }
 
 impl TestContextBuilder {
@@ -31,6 +34,8 @@ impl TestContextBuilder {
             start_workers: false,
             whisper_url: None,
             coordinator_watcher_tx: None,
+            concurrency_limit: None,
+            download_core: None,
         }
     }
 
@@ -53,6 +58,11 @@ impl TestContextBuilder {
         self
     }
 
+    pub fn concurrency_limit(mut self, limit: usize) -> Self {
+        self.concurrency_limit = Some(limit);
+        self
+    }
+
     pub async fn build(self) -> TestContext {
         let mock_server = MockServer::start().await;
         let pool = sqlx::sqlite::SqlitePoolOptions::new()
@@ -71,11 +81,15 @@ impl TestContextBuilder {
         let (transcribe_tx, transcribe_rx) = mpsc::channel(100);
         let (detect_tx, detect_rx) = mpsc::channel(100);
 
-        let (download, download_worker) = DownloadManager::new(
+        let download_core = self.download_core.unwrap_or(Arc::new(DownloadCore::new(
             tempfile::tempdir().unwrap().path().into(),
             http.clone(),
+        )));
+        let (download, download_worker) = DownloadManager::new(
+            download_core,
             download_tx,
             100,
+            self.concurrency_limit.unwrap_or(10),
         );
         let download = Arc::new(download);
         let rss_service = RSSFeedService::new(http.clone());

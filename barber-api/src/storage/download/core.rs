@@ -1,37 +1,21 @@
 use crate::error::AppError;
+use async_trait::async_trait;
 use reqwest::Client;
 use std::path::PathBuf;
 
-#[derive(Clone)]
-pub struct DownloadCore {
-    pub(crate) base_dir: PathBuf,
-    pub(crate) client: Client,
+#[async_trait]
+pub trait Downloader: Send + Sync {
+    async fn download_to_path(
+        &self,
+        audio_url: &str,
+        folder_name: &str,
+        guid: &str,
+    ) -> Result<PathBuf, AppError>;
 }
 
-impl DownloadCore {
-    const PODCAST_DIR: &str = "podcast";
-
-    pub fn new(base_dir: PathBuf, client: Client) -> Self {
-        Self { base_dir, client }
-    }
-
-    // Returns the full PathBuf and ensures the folder exists
-    pub async fn prepare_episode_path(
-        &self,
-        folder_name: &str,
-        episode_guid: &str,
-    ) -> Result<PathBuf, std::io::Error> {
-        let podcast_dir = self.base_dir.join(Self::PODCAST_DIR).join(folder_name);
-
-        // Create the podcast-specific folder if it doesn't exist
-        if !podcast_dir.exists() {
-            tokio::fs::create_dir_all(&podcast_dir).await?;
-        }
-
-        Ok(podcast_dir.join(format!("{}.mp3", episode_guid)))
-    }
-
-    pub async fn download_to_path(
+#[async_trait]
+impl Downloader for DownloadCore {
+    async fn download_to_path(
         &self,
         audio_url: &str,
         folder_name: &str,
@@ -74,6 +58,36 @@ impl DownloadCore {
         }
 
         Ok(output_path)
+    }
+}
+
+#[derive(Clone)]
+pub struct DownloadCore {
+    pub(crate) base_dir: PathBuf,
+    pub(crate) client: Client,
+}
+
+impl DownloadCore {
+    const PODCAST_DIR: &str = "podcast";
+
+    pub fn new(base_dir: PathBuf, client: Client) -> Self {
+        Self { base_dir, client }
+    }
+
+    // Returns the full PathBuf and ensures the folder exists
+    pub async fn prepare_episode_path(
+        &self,
+        folder_name: &str,
+        episode_guid: &str,
+    ) -> Result<PathBuf, std::io::Error> {
+        let podcast_dir = self.base_dir.join(Self::PODCAST_DIR).join(folder_name);
+
+        // Create the podcast-specific folder if it doesn't exist
+        if !podcast_dir.exists() {
+            tokio::fs::create_dir_all(&podcast_dir).await?;
+        }
+
+        Ok(podcast_dir.join(format!("{}.mp3", episode_guid)))
     }
 }
 

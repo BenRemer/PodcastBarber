@@ -77,4 +77,3 @@ async fn test_full_audio_pipeline() {
     let segments = detection.segments;
     assert!(segments.len() > 4);
 }
-

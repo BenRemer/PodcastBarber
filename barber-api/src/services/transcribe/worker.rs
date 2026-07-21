@@ -60,17 +60,10 @@ impl TranscribeWorker {
         tracing::info!("Stopping Transcribe Worker.");
     }
 
-    async fn send_result(
-        &self,
-        episode_id: Uuid,
-        error: Option<AppError>,
-    ) {
+    async fn send_result(&self, episode_id: Uuid, error: Option<AppError>) {
         let _ = self
             .callback
-            .send(TranscribeResult {
-                episode_id,
-                error,
-            })
+            .send(TranscribeResult { episode_id, error })
             .await;
     }
 }

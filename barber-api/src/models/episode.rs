@@ -1,6 +1,6 @@
-use std::path::PathBuf;
 use crate::utils::generate_episode_uuid;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, sqlx::Type, Copy)]

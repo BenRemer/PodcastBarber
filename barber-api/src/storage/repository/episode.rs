@@ -1,7 +1,7 @@
-use std::path::PathBuf;
 use crate::error::AppError;
 use crate::models::episode::{Episode, EpisodeState};
 use sqlx::SqlitePool;
+use std::path::PathBuf;
 use uuid::Uuid;
 
 #[derive(Clone)]
