@@ -12,7 +12,7 @@ pub struct DetectionResult {
     pub error: Option<AppError>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ProcessedSegment {
     pub start_time: f64,
     pub end_time: f64,

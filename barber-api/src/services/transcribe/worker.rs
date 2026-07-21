@@ -26,8 +26,8 @@ impl TranscribeWorker {
             let core_clone = self.core.clone();
             let callback_clone = self.callback.clone();
             let repo_clone = self.transcript_repository.clone();
-            let permit = semaphore.clone().acquire_owned().await.unwrap();
 
+            let permit = semaphore.clone().acquire_owned().await.unwrap();
             tokio::spawn(async move {
                 let episode_id = job.episode_id;
                 let path = job.file_path;

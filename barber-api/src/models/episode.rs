@@ -12,6 +12,7 @@ pub enum EpisodeState {
     Transcribed,
     Processing,
     Detected,
+    Edited,
     Error,
 }
 

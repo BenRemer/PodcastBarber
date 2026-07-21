@@ -1,6 +1,7 @@
 use crate::error::AppError;
-use crate::models::episode::EpisodeState;
+use crate::models::episode::{Episode, EpisodeState};
 use crate::services::detection::{DetectionJob, DetectionResult, DetectionService};
+use crate::services::editor::{EditorJob, EditorResult, EditorService};
 use crate::services::transcribe::TranscribeService;
 use crate::services::transcribe::types::{TranscribeJob, TranscribeResult};
 use crate::storage::download::DownloadResult;
@@ -16,17 +17,24 @@ pub enum PipelineEvent {
     DownloadComplete(Uuid),
     TranscriptionComplete(Uuid, Option<AppError>),
     DetectionComplete(Uuid, Option<AppError>),
+    EditComplete(Uuid),
 }
 
 pub struct AudioCoordinator {
     pub download_callback: mpsc::Receiver<DownloadResult>,
+    pub episode_repository: EpisodeRepository,
+
     pub transcribe_service: Arc<TranscribeService>,
     pub transcribe_callback: mpsc::Receiver<TranscribeResult>,
+    pub transcript_repository: Arc<dyn TranscriptStore>,
+
     pub detection_service: Arc<DetectionService>,
     pub detection_callback: mpsc::Receiver<DetectionResult>,
-    pub episode_repository: EpisodeRepository,
-    pub transcript_repository: Arc<dyn TranscriptStore>,
     pub detection_repository: Arc<dyn DetectionStore>,
+
+    pub editor_service: Arc<EditorService>,
+    pub editor_callback: mpsc::Receiver<EditorResult>,
+
     pub event_sender: Option<mpsc::Sender<PipelineEvent>>,
 }
 
@@ -38,6 +46,8 @@ impl AudioCoordinator {
         transcribe_callback: mpsc::Receiver<TranscribeResult>,
         detection_service: Arc<DetectionService>,
         detection_callback: mpsc::Receiver<DetectionResult>,
+        editor_service: Arc<EditorService>,
+        editor_callback: mpsc::Receiver<EditorResult>,
         episode_repository: EpisodeRepository,
         transcript_repository: Arc<dyn TranscriptStore>,
         detection_repository: Arc<dyn DetectionStore>,
@@ -49,6 +59,8 @@ impl AudioCoordinator {
             transcribe_callback,
             detection_service,
             detection_callback,
+            editor_service,
+            editor_callback,
             episode_repository,
             transcript_repository,
             detection_repository,
@@ -90,12 +102,42 @@ impl AudioCoordinator {
                             .episode_id, detection_result.error.clone())).await;
                     }
                 }
+                Some(editor_result) = self.editor_callback.recv() => {
+                    tracing::info!("Edit of episode finished");
+                    self.handle_after_edit(&editor_result).await;
+                    if let Some(watcher) = &self.event_sender {
+                        let _ = watcher.send(PipelineEvent::EditComplete(editor_result.episode_id())).await;
+                    }
+                }
                 else => {
                     tracing::info!("All worker channels closed. Shutting down Coordinator.");
                     break;
                 }
             }
         }
+    }
+
+    async fn update_episode_state(
+        &self,
+        episode_id: &Uuid,
+        state: EpisodeState,
+    ) -> Option<Episode> {
+        let Ok(Some(mut episode)) = self.episode_repository.get(episode_id).await else {
+            tracing::info!("Episode {} not found.", episode_id);
+            return None;
+        };
+
+        episode.state = state;
+        if let Err(e) = self.episode_repository.upsert(episode.clone()).await {
+            tracing::error!(
+                "Failed updating episode {} after detection: {:?}",
+                episode_id,
+                e
+            );
+            return None;
+        }
+
+        Some(episode)
     }
 
     /// Set db to downloaded and start transcription
@@ -148,9 +190,10 @@ impl AudioCoordinator {
         };
 
         tracing::info!("Transcribe success for episode {}", episode_id);
-        if !self
-            .update_episode(&episode_id, EpisodeState::Transcribed)
+        if self
+            .update_episode_state(&episode_id, EpisodeState::Transcribed)
             .await
+            .is_none()
         {
             tracing::error!(
                 "Failed to update episode {} for transcribed tracking",
@@ -167,7 +210,7 @@ impl AudioCoordinator {
         }
     }
 
-    // Detection finished now... todo
+    // Detection finished now send to editor
     async fn handle_after_detection(&self, detection_result: &DetectionResult) {
         let episode_id = &detection_result.episode_id;
         if detection_result.error.is_some() {
@@ -175,34 +218,64 @@ impl AudioCoordinator {
             return;
         }
 
-        if !self
-            .update_episode(episode_id, EpisodeState::Detected)
+        let Some(episode) = self
+            .update_episode_state(episode_id, EpisodeState::Detected)
             .await
-        {
+        else {
             tracing::error!(
                 "Failed to update episode {} for detected tracking",
                 episode_id
             );
             return;
-        }
-    }
-
-    async fn update_episode(&self, episode_id: &Uuid, state: EpisodeState) -> bool {
-        let Ok(Some(mut episode)) = self.episode_repository.get(episode_id).await else {
-            tracing::info!("Episode {} not found.", episode_id);
-            return false;
         };
 
-        episode.state = state;
-        if let Err(e) = self.episode_repository.upsert(episode).await {
+        let Ok(Some(detection)) = self
+            .detection_repository
+            .get_detection_by_episode(episode_id)
+            .await
+        else {
+            tracing::info!("Detection {} not found.", episode_id);
+            return;
+        };
+
+        if let Err(e) = self
+            .editor_service
+            .edit_audio(EditorJob {
+                episode_id: detection.episode_id,
+                episode_path: episode.local_file_path.unwrap(),
+                segments: detection.segments,
+            })
+            .await
+        {
             tracing::error!(
-                "Failed updating episode {} after detection: {:?}",
-                episode_id,
+                "Failed sending episode to edit queue {}: {:?}",
+                detection.episode_id,
                 e
             );
-            return false;
-        }
+        };
+    }
 
-        true
+    // after edit todo
+    async fn handle_after_edit(&self, editor_result: &EditorResult) {
+        let EditorResult::Success { episode_id, path } = editor_result else {
+            if let EditorResult::Failure { episode_id, error } = editor_result {
+                tracing::error!("Failed to process episode {}: {:?}", episode_id, error);
+            }
+            return;
+        };
+
+        tracing::info!("Successfully processed to {:?}", path);
+        if self
+            .update_episode_state(&episode_id, EpisodeState::Edited)
+            .await
+            .is_none()
+        {
+            tracing::error!(
+                "Failed to update episode {} for edited tracking",
+                episode_id
+            );
+            return;
+        }
+        // todo
     }
 }

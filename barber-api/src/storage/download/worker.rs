@@ -6,7 +6,7 @@ use tokio::sync::{Semaphore, mpsc};
 pub struct DownloadWorker {
     pub(crate) core: Arc<dyn Downloader>,
     pub(crate) queue_receive: mpsc::Receiver<DownloadJob>,
-    pub(crate) callback: mpsc::Sender<DownloadResult>,
+    pub(crate) callback: mpsc::Sender<DownloadResult>, // audio coordinator callback
     pub(crate) concurrency_limit: usize,
 }
 
@@ -14,18 +14,16 @@ impl DownloadWorker {
     pub async fn run(mut self) {
         tracing::info!("DownloadWorker background download worker starting...");
 
-        let core = Arc::new(self.core);
         let semaphore = Arc::new(Semaphore::new(self.concurrency_limit));
 
         while let Some(job) = self.queue_receive.recv().await {
             tracing::info!("DownloadWorker received job: {:?}", job);
 
-            let core_clone = core.clone();
+            let core_clone = self.core.clone();
             let callback_clone = self.callback.clone();
 
             // Wait for an available slot before spawning.
             let permit = semaphore.clone().acquire_owned().await.unwrap();
-
             tokio::spawn(async move {
                 let status = core_clone
                     .download_to_path(&job.audio_url, &job.folder_name, &job.guid)
@@ -42,8 +40,6 @@ impl DownloadWorker {
                 } else {
                     tracing::info!("Called download worker task to coordinator");
                 }
-
-                // Clear slot
                 drop(permit);
             });
         }

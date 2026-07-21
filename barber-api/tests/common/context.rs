@@ -13,6 +13,7 @@ use barber_api::services::{
     transcribe::TranscribeWorker,
 };
 use barber_api::storage::download::DownloadWorker;
+use barber_api::services::editor::EditorWorker;
 
 use crate::common::builder::TestContextBuilder;
 use barber_api::storage::repository::detection::DetectionRepository;
@@ -39,6 +40,7 @@ pub struct TestContext {
     pub download_worker: Option<DownloadWorker>,
     pub whisper_worker: Option<TranscribeWorker>,
     pub detection_worker: Option<DetectionWorker>,
+    pub editor_worker: Option<EditorWorker>,
 }
 
 impl TestContext {

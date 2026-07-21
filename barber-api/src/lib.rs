@@ -3,12 +3,11 @@ use crate::constants::{
 };
 use crate::processors::coordinator::AudioCoordinator;
 use crate::services::detection::{DetectionResult, DetectionService};
+use crate::services::editor::{EditorCore, EditorResult, EditorService};
 use crate::services::episode::EpisodeService;
 use crate::services::podcast::PodcastService;
 use crate::services::rss::RSSFeedService;
-use crate::services::transcribe::TranscribeService;
-use crate::services::transcribe::core::TranscribeCore;
-use crate::services::transcribe::types::TranscribeResult;
+use crate::services::transcribe::{TranscribeCore, TranscribeResult, TranscribeService};
 use crate::state::AppState;
 use crate::storage::database::Database;
 use crate::storage::download::{DownloadCore, DownloadManager, DownloadResult};
@@ -51,9 +50,14 @@ pub async fn run() {
     // todo set size
     let transcribe_size = 20;
     let detection_size = 20;
+    let edit_size = 20;
     let download_concurrency_limit = 10;
     let transcribe_concurrency_limit = 10;
     let detection_concurrency_limit = 10;
+    let audio_edit_concurrency_limit = 10;
+
+    // On Disk Files
+    let base_dir = PathBuf::from(base_download_path);
 
     // Database
     let db = Database::connect(&database_url)
@@ -74,12 +78,10 @@ pub async fn run() {
         mpsc::channel::<TranscribeResult>(transcribe_size);
     let (detection_result_sender, detection_result_receiver) =
         mpsc::channel::<DetectionResult>(detection_size);
+    let (edit_result_sender, edit_result_receiver) = mpsc::channel::<EditorResult>(20);
 
     // Services
-    let download_core = Arc::new(DownloadCore::new(
-        PathBuf::from(base_download_path),
-        http_client.clone(),
-    ));
+    let download_core = Arc::new(DownloadCore::new(base_dir.clone(), http_client.clone()));
     let (download_handle, download_worker) = DownloadManager::new(
         download_core,
         download_callback_sender,
@@ -102,6 +104,7 @@ pub async fn run() {
     let podcast_service = PodcastService::new(db.podcast_repository());
     let episode_service =
         EpisodeService::new(db.episode_repository(), Arc::clone(&download_manager));
+
     let (detection_handle, detection_worker) = DetectionService::new(
         Arc::new(db.transcript_repository()),
         Arc::new(db.detection_repository()),
@@ -111,6 +114,15 @@ pub async fn run() {
     );
     let detection_service = Arc::new(detection_handle);
 
+    let editor_core = Arc::new(EditorCore::new(base_dir.clone()));
+    let (editor_handle, editor_worker) = EditorService::new(
+        editor_core,
+        edit_result_sender,
+        edit_size,
+        audio_edit_concurrency_limit,
+    );
+    let editor_service = Arc::new(editor_handle);
+
     // Processors
     let audio_processor = AudioCoordinator::new(
         download_callback_receiver,
@@ -118,6 +130,8 @@ pub async fn run() {
         transcribe_result_receiver,
         Arc::clone(&detection_service),
         detection_result_receiver,
+        Arc::clone(&editor_service),
+        edit_result_receiver,
         db.episode_repository(),
         Arc::new(db.transcript_repository()),
         Arc::new(db.detection_repository()),
@@ -134,6 +148,9 @@ pub async fn run() {
     });
     tokio::spawn(async move {
         detection_worker.run().await;
+    });
+    tokio::spawn(async move {
+        editor_worker.run().await;
     });
     tokio::spawn(async move {
         audio_processor.run().await;

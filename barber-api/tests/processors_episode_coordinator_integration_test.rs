@@ -68,6 +68,15 @@ async fn test_full_audio_pipeline() {
                     .unwrap()
                     .expect("no episode");
                 assert_eq!(EpisodeState::Detected, episode.state);
+            }
+            PipelineEvent::EditComplete(id) if id == episode.id => {
+                let episode = ctx
+                    .episode_repository
+                    .get(&id)
+                    .await
+                    .unwrap()
+                    .expect("no episode");
+                assert_eq!(EpisodeState::Edited, episode.state);
 
                 break;
             }

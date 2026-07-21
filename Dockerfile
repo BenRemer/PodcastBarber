@@ -28,6 +28,7 @@ FROM ubuntu:24.04
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     ca-certificates \
     libssl3 \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/local/bin
@@ -37,3 +38,4 @@ COPY --from=builder /usr/src/app/target/release/barber_api .
 EXPOSE 3000
 
 CMD ["./barber_api"]
+

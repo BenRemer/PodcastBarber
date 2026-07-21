@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use crate::common::context::TestContext;
 use crate::common::mocks;
 use barber_api::models::episode::{Episode, EpisodeState};
@@ -10,6 +11,7 @@ use barber_api::services::rss::RSSFeedService;
 use barber_api::services::transcribe::TranscribeService;
 use barber_api::services::transcribe::core::TranscribeCore;
 use barber_api::storage::download::{DownloadCore, DownloadManager, Downloader};
+use barber_api::services::editor::{EditorCore, EditorService};
 use barber_api::storage::repository::detection::DetectionRepository;
 use barber_api::storage::repository::episode::EpisodeRepository;
 use barber_api::storage::repository::podcast::PodcastRepository;
@@ -19,6 +21,7 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 use wiremock::MockServer;
+use crate::common::mocks::editor::MockEditor;
 
 pub struct TestContextBuilder {
     start_workers: bool,
@@ -78,12 +81,16 @@ impl TestContextBuilder {
 
         let http = reqwest::Client::new();
 
+        let base_dir = PathBuf::from(tempfile::tempdir().unwrap().path());
+
         let (download_tx, download_rx) = mpsc::channel(100);
         let (transcribe_tx, transcribe_rx) = mpsc::channel(100);
         let (detect_tx, detect_rx) = mpsc::channel(100);
+        let (edit_tx, edit_rx) = mpsc::channel(100);
+
 
         let download_core = self.download_core.unwrap_or(Arc::new(DownloadCore::new(
-            tempfile::tempdir().unwrap().path().into(),
+            base_dir.clone(),
             http.clone(),
         )));
         let (download, download_worker) = DownloadManager::new(
@@ -110,6 +117,7 @@ impl TestContextBuilder {
             Arc::new(transcript_repository.clone()),
         );
         let whisper = Arc::new(whisper);
+
         let (detection, detection_worker) = DetectionService::new(
             Arc::new(transcript_repository.clone()),
             Arc::new(detection_repository.clone()),
@@ -118,12 +126,24 @@ impl TestContextBuilder {
             self.concurrency_limit.unwrap_or(10),
         );
         let detection = Arc::new(detection);
+
+        let editor_core = Arc::new(MockEditor);
+        let (editor_handle, editor_worker) = EditorService::new(
+            editor_core,
+            edit_tx,
+            100,
+            self.concurrency_limit.unwrap_or(10),
+        );
+        let editor = Arc::new(editor_handle);
+
         let coordinator = AudioCoordinator::new(
             download_rx,
             whisper.clone(),
             transcribe_rx,
             detection.clone(),
             detect_rx,
+            editor.clone(),
+            edit_rx,
             episode_repository.clone(),
             Arc::new(transcript_repository.clone()),
             Arc::new(detection_repository.clone()),
@@ -145,6 +165,7 @@ impl TestContextBuilder {
             download_worker: Some(download_worker),
             whisper_worker: Some(whisper_worker),
             detection_worker: Some(detection_worker),
+            editor_worker: Some(editor_worker),
         };
 
         if self.start_workers {
@@ -155,6 +176,9 @@ impl TestContextBuilder {
                 tokio::spawn(w.run());
             }
             if let Some(w) = ctx.detection_worker.take() {
+                tokio::spawn(w.run());
+            }
+            if let Some(w) = ctx.editor_worker.take() {
                 tokio::spawn(w.run());
             }
             if let Some(w) = ctx.audio_coordinator.take() {

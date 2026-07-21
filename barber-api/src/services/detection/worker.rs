@@ -32,8 +32,8 @@ impl DetectionWorker {
             let callback_clone = self.callback.clone();
             let transcript_store = self.transcript_repository.clone();
             let detection_store = self.detection_repository.clone();
-            let permit = semaphore.clone().acquire_owned().await.unwrap();
 
+            let permit = semaphore.clone().acquire_owned().await.unwrap();
             tokio::spawn(async move {
                 match Self::process(
                     &job,

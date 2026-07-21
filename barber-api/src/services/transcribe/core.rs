@@ -4,6 +4,32 @@ use reqwest::Client;
 use serde_json::Value;
 use tokio::fs;
 
+#[derive(Clone)]
+pub struct TranscribeCore {
+    pub(crate) base_url: String,
+    pub(crate) client: Client,
+}
+
+impl TranscribeCore {
+    pub fn new(base_url: String, client: Client) -> Self {
+        Self { base_url, client }
+    }
+
+    #[allow(dead_code)]
+    async fn save_to_file(transcript: &Value) {
+        // Write transcription to file
+        // get with 'docker cp barber-api:/usr/local/bin/downloads/transcript.json .'
+        let json_string =
+            serde_json::to_string_pretty(transcript).expect("Failed to serialize data to string");
+        fs::create_dir_all("./downloads")
+            .await
+            .expect("Failed to create downloads folder");
+        fs::write("./downloads/transcript.json", json_string)
+            .await
+            .expect("Failed to write to file");
+    }
+}
+
 #[async_trait]
 pub trait Transcriber: Send + Sync {
     async fn transcribe_audio(
@@ -49,31 +75,5 @@ impl Transcriber for TranscribeCore {
         let response = self.client.get(&endpoint).send().await?;
         let json = response.json::<Value>().await?;
         Ok(json)
-    }
-}
-
-#[derive(Clone)]
-pub struct TranscribeCore {
-    pub(crate) base_url: String,
-    pub(crate) client: Client,
-}
-
-impl TranscribeCore {
-    pub fn new(base_url: String, client: Client) -> Self {
-        Self { base_url, client }
-    }
-
-    #[allow(dead_code)]
-    async fn save_to_file(transcript: &Value) {
-        // Write transcription to file
-        // get with 'docker cp barber-api:/usr/local/bin/downloads/transcript.json .'
-        let json_string =
-            serde_json::to_string_pretty(transcript).expect("Failed to serialize data to string");
-        fs::create_dir_all("./downloads")
-            .await
-            .expect("Failed to create downloads folder");
-        fs::write("./downloads/transcript.json", json_string)
-            .await
-            .expect("Failed to write to file");
     }
 }
