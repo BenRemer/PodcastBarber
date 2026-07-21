@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use crate::error::AppError;
 use crate::models::episode::{Episode, EpisodeState};
 use sqlx::SqlitePool;
@@ -8,14 +9,58 @@ pub struct EpisodeRepository {
     pool: SqlitePool,
 }
 
+#[derive(sqlx::FromRow)]
+struct EpisodeRow {
+    id: Uuid,
+    podcast_id: Uuid,
+    guid: String,
+    title: String,
+    audio_url: String,
+    local_file_path: Option<String>,
+    state: EpisodeState,
+}
+
+impl From<EpisodeRow> for Episode {
+    fn from(row: EpisodeRow) -> Self {
+        Self {
+            id: row.id,
+            podcast_id: row.podcast_id,
+            guid: row.guid.clone(),
+            title: row.title.clone(),
+            audio_url: row.audio_url.clone(),
+            local_file_path: row.local_file_path.map(PathBuf::from),
+            state: row.state,
+        }
+    }
+}
+
+impl From<&Episode> for EpisodeRow {
+    fn from(ep: &Episode) -> Self {
+        Self {
+            id: ep.id,
+            podcast_id: ep.podcast_id,
+            guid: ep.guid.clone(),
+            title: ep.title.clone(),
+            audio_url: ep.audio_url.clone(),
+            local_file_path: ep
+                .local_file_path
+                .as_ref()
+                .map(|p| p.to_string_lossy().into_owned()),
+            state: ep.state,
+        }
+    }
+}
+
 impl EpisodeRepository {
     pub fn new(pool: SqlitePool) -> Self {
         Self { pool }
     }
 
     pub async fn upsert(&self, episode: Episode) -> Result<Episode, AppError> {
+        let db_episode = EpisodeRow::from(&episode);
+
         let row = sqlx::query_as!(
-            Episode,
+            EpisodeRow,
             r#"
             INSERT INTO episodes (
                 id, podcast_id, guid, title, audio_url, local_file_path, state
@@ -35,13 +80,13 @@ impl EpisodeRepository {
                 local_file_path,
                 state as "state!: EpisodeState"
             "#,
-            episode.id,
-            episode.podcast_id,
-            episode.guid,
-            episode.title,
-            episode.audio_url,
-            episode.local_file_path,
-            episode.state as EpisodeState
+            db_episode.id,
+            db_episode.podcast_id,
+            db_episode.guid,
+            db_episode.title,
+            db_episode.audio_url,
+            db_episode.local_file_path,
+            db_episode.state as EpisodeState
         )
         .fetch_one(&self.pool)
         .await
@@ -50,12 +95,12 @@ impl EpisodeRepository {
             AppError::InternalServerError("Failed to save episode to database".into())
         })?;
 
-        Ok(row)
+        Ok(Episode::from(row))
     }
 
     pub async fn get(&self, uid: &Uuid) -> Result<Option<Episode>, AppError> {
-        let episode = sqlx::query_as!(
-            Episode,
+        let row = sqlx::query_as!(
+            EpisodeRow,
             r#"
             SELECT
                 id as "id!: Uuid",
@@ -77,12 +122,12 @@ impl EpisodeRepository {
             AppError::InternalServerError("Failed to fetch episode".into())
         })?;
 
-        Ok(episode)
+        Ok(row.map(Episode::from))
     }
 
     pub async fn get_by_podcast_id(&self, podcast_id: &Uuid) -> Result<Vec<Episode>, AppError> {
-        let episodes = sqlx::query_as!(
-            Episode,
+        let row = sqlx::query_as!(
+            EpisodeRow,
             r#"
             SELECT
                 id as "id!: Uuid",
@@ -104,7 +149,7 @@ impl EpisodeRepository {
             AppError::InternalServerError("Failed to fetch episodes".into())
         })?;
 
-        Ok(episodes)
+        Ok(row.into_iter().map(Episode::from).collect())
     }
 
     pub async fn get_by_guid(
@@ -112,8 +157,8 @@ impl EpisodeRepository {
         podcast_id: &Uuid,
         guid: &str,
     ) -> Result<Option<Episode>, AppError> {
-        let episode = sqlx::query_as!(
-            Episode,
+        let row = sqlx::query_as!(
+            EpisodeRow,
             r#"
             SELECT
                 id as "id!: Uuid",
@@ -136,7 +181,7 @@ impl EpisodeRepository {
             AppError::InternalServerError("Failed to fetch episode".into())
         })?;
 
-        Ok(episode)
+        Ok(row.map(Episode::from))
     }
 
     pub async fn delete(&self, id: &Uuid) -> Result<bool, AppError> {

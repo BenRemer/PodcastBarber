@@ -1,12 +1,11 @@
+use std::path::PathBuf;
 use crate::error::AppError;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct TranscribeJob {
     pub episode_id: Uuid,
-    pub file_name: String,
-    pub content_type: String,
-    pub data: bytes::Bytes,
+    pub file_path: PathBuf,
 }
 
 pub struct TranscribeResult {

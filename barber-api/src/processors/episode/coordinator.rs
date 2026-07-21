@@ -95,46 +95,33 @@ impl AudioCoordinator {
 
     /// Set db to downloaded and start transcription
     async fn handle_after_download(&self, dl_result: DownloadResult) {
-        if let Ok(Some(mut episode)) = self.episode_repository.get(&dl_result.tracking_id).await {
-            match dl_result.status {
-                Ok(path) => {
-                    tracing::info!("Download success for episode {}", dl_result.tracking_id);
+        let Ok(Some(mut episode)) = self.episode_repository.get(&dl_result.tracking_id).await else {
+            tracing::info!("Episode {} not found.", dl_result.tracking_id);
+            return;
+        };
 
-                    episode.state = EpisodeState::Downloaded;
-                    episode.local_file_path = Some(path.to_string_lossy().into_owned());
-                    let _ = self.episode_repository.upsert(episode).await;
-
-                    // Read the file into bytes and send it to the Transcribe worker
-                    if let Ok(file_bytes) = tokio::fs::read(&path).await {
-                        let content_type = match infer::get(&file_bytes) {
-                            Some(kind) => kind.mime_type().to_string(),
-                            None => "application/octet-stream".to_string(),
-                        };
-
-                        let transcribe_job = TranscribeJob {
-                            episode_id: dl_result.tracking_id,
-                            file_name: path.file_name().unwrap().to_string_lossy().into_owned(),
-                            content_type,
-                            data: file_bytes.into(),
-                        };
-
-                        let _ = self
-                            .transcribe_service
-                            .transcribe_audio(transcribe_job)
-                            .await;
-                    }
-                }
-                Err(e) => {
-                    tracing::error!(
-                        "Download failed for episode {}: {:?}",
-                        dl_result.tracking_id,
-                        e
-                    );
-                    episode.state = EpisodeState::Error;
-                    let _ = self.episode_repository.upsert(episode).await;
-                }
+        let path = match dl_result.status {
+            Ok(path) => path,
+            Err(err) => {
+                tracing::error!("Download failed for episode {}: {:?}", dl_result.tracking_id, err);
+                episode.state = EpisodeState::Error;
+                let _ = self.episode_repository.upsert(episode).await;
+                return;
             }
-        }
+        };
+
+        tracing::info!("Download success for episode {}", dl_result.tracking_id);
+        episode.state = EpisodeState::Downloaded;
+        episode.local_file_path = Some(path.to_owned());
+        let _ = self.episode_repository.upsert(episode).await;
+
+        let _ = self
+            .transcribe_service
+            .transcribe_audio(TranscribeJob {
+                episode_id: dl_result.tracking_id,
+                file_path: path,
+            })
+            .await;
     }
 
     /// Set DB to transcribed and send to detection

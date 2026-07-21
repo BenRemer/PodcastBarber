@@ -65,7 +65,6 @@ impl RSSFeedService {
 
     pub(crate) fn parse_rss_channel(xml_bytes: &[u8]) -> Result<Channel, AppError> {
         Channel::read_from(xml_bytes).map_err(|e| {
-            println!("!!! RSS PARSING CRASHED BECAUSE: {:#?} !!!", e);
             tracing::error!("Failed to parse RSS: {}", e);
             AppError::InternalServerError("Invalid RSS format".into())
         })

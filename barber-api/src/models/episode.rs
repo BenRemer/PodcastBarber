@@ -1,8 +1,9 @@
+use std::path::PathBuf;
 use crate::utils::generate_episode_uuid;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, sqlx::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, sqlx::Type, Copy)]
 #[sqlx(type_name = "TEXT", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum EpisodeState {
@@ -21,7 +22,7 @@ pub struct Episode {
     pub guid: String,
     pub title: String,
     pub audio_url: String,
-    pub local_file_path: Option<String>,
+    pub local_file_path: Option<PathBuf>,
     pub state: EpisodeState,
 }
 

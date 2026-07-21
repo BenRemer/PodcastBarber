@@ -17,7 +17,7 @@ impl EpisodeWorker {
                     Ok(path) => {
                         tracing::info!("Recording success for episode {}", result.tracking_id);
                         episode.state = EpisodeState::Downloaded;
-                        episode.local_file_path = Some(path.to_string_lossy().into_owned());
+                        episode.local_file_path = Some(path);
                     }
                     Err(e) => {
                         tracing::error!(

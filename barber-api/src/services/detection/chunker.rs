@@ -78,7 +78,6 @@ pub fn generate_chunks(
         });
     }
 
-    println!("Loading model via FastEmbed...");
     let mut embedder = TextEmbedding::try_new(Default::default())
         .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 

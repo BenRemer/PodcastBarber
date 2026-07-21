@@ -18,9 +18,22 @@ impl TranscribeWorker {
         tracing::info!("Starting Transcribe Worker...");
         while let Some(job) = self.queue_receive.recv().await {
             let episode_id = job.episode_id;
+            let path = job.file_path;
+
+            let Ok(file_bytes) = tokio::fs::read(&path).await else {
+                tracing::info!("Failed to read episode {}", episode_id);
+                return;
+            };
+
+            let content_type = infer::get(&file_bytes)
+                .map(|kind| kind.mime_type().to_string())
+                .unwrap_or_else(|| "application/octet-stream".to_string());
+
+            let file_name = path.file_name().unwrap().to_string_lossy().into_owned();
+
             match self
                 .core
-                .transcribe_audio(job.file_name, job.content_type, job.data)
+                .transcribe_audio(file_name, content_type, file_bytes.into())
                 .await
             {
                 Ok(data) => {
@@ -31,7 +44,7 @@ impl TranscribeWorker {
                     };
                     // write to repo
                     match self.transcript_repository.upsert(transcript).await {
-                        Ok(transcript) => {
+                        Ok(_) => {
                             self.send_result(episode_id, None).await;
                         }
                         Err(e) => {
