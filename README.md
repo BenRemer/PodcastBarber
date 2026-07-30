@@ -38,7 +38,7 @@ docker compose down
 If you want to build the image from scratch and immediately tail the output logs you can use the included script:
 
 ```bash
-chmod +x buildandfollow.sh  # If it needs execute permissions
+chmod +x buildandfollow.sh 
 ./buildandfollow.sh
 ```
 
