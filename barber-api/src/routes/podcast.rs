@@ -1,15 +1,16 @@
+use aide::axum::ApiRouter;
+use aide::axum::routing::{get, post};
 use crate::models::api::PodcastRequest;
 use crate::models::podcast::Podcast;
 use crate::{error::AppError, state::AppState};
 use axum::http::StatusCode;
-use axum::routing::{get, post};
-use axum::{Json, Router, extract::State};
+use axum::{Json, extract::State};
 
-pub fn podcasts_router() -> Router<AppState> {
+pub fn podcasts_router() -> ApiRouter<AppState> {
     // /api/podcasts
-    Router::new()
-        .route("/", get(list_subscribed_podcasts))
-        .route("/", post(subscribe_to_podcast))
+    ApiRouter::new()
+        .api_route("/", get(list_subscribed_podcasts))
+        .api_route("/", post(subscribe_to_podcast))
     // .route("/{podcast_id}", get(list_episodes))
 }
 

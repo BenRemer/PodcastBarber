@@ -1,3 +1,6 @@
+use aide::generate::GenContext;
+use aide::OperationOutput;
+use aide::openapi::Response as OpenApiResponse;
 use axum::{
     Json,
     http::StatusCode,
@@ -47,5 +50,34 @@ impl IntoResponse for AppError {
         }));
 
         (status, body).into_response()
+    }
+}
+
+// Tell aide how to convert to http errors
+impl OperationOutput for AppError {
+    type Inner = Self;
+
+    fn inferred_responses(
+        _ctx: &mut GenContext,
+        _operation: &mut aide::openapi::Operation,
+    ) -> Vec<(Option<u16>, OpenApiResponse)> {
+        vec![
+            (Some(400), OpenApiResponse {
+                description: "Bad Request".into(),
+                ..Default::default()
+            }),
+            (Some(404), OpenApiResponse {
+                description: "Not Found".into(),
+                ..Default::default()
+            }),
+            (Some(500), OpenApiResponse {
+                description: "Internal Server Error".into(),
+                ..Default::default()
+            }),
+            (Some(503), OpenApiResponse {
+                description: "Service Unavailable".into(),
+                ..Default::default()
+            }),
+        ]
     }
 }

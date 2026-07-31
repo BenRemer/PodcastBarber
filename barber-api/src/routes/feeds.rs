@@ -1,10 +1,10 @@
 use crate::models::api::EpisodesResponse;
 use crate::{error::AppError, state::AppState};
-use axum::http::StatusCode;
 use axum::{Json, extract::State};
+use schemars::JsonSchema;
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct FeedRequest {
     pub feed_url: String,
     pub size: Option<usize>,
@@ -13,8 +13,9 @@ pub struct FeedRequest {
 pub async fn list_episodes(
     State(state): State<AppState>,
     Json(payload): Json<FeedRequest>,
-) -> Result<(StatusCode, Json<EpisodesResponse>), AppError> {
-    let size = payload.size.unwrap_or(20);
+) -> Result<Json<EpisodesResponse>, AppError> {
+    let size = payload.size.unwrap_or(20); // todo pass default
+
     tracing::info!("Listing {} episodes of {}", size, payload.feed_url);
 
     let list = state
@@ -22,11 +23,8 @@ pub async fn list_episodes(
         .list_episodes(&payload.feed_url, Some(size))
         .await?;
 
-    Ok((
-        StatusCode::OK,
-        Json(EpisodesResponse {
-            total: list.len(),
-            items: list,
-        }),
-    ))
+    Ok(Json(EpisodesResponse {
+        total: list.len(),
+        items: list,
+    }))
 }

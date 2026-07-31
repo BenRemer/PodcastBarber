@@ -1,19 +1,20 @@
+use aide::axum::ApiRouter;
+use aide::axum::routing::{delete, get, post};
 use crate::models::api::{EpisodeItem, EpisodeQuery, EpisodeRequest};
 use crate::models::episode::Episode;
 use crate::{error::AppError, state::AppState};
-use axum::extract::{Path, Query};
 use axum::http::StatusCode;
-use axum::routing::{delete, get, post};
-use axum::{Json, Router, extract::State};
+use axum::{Json, extract::State};
+use axum::extract::{Path, Query};
 use uuid::Uuid;
 
-pub fn episodes_router() -> Router<AppState> {
+pub fn episodes_router() -> ApiRouter<AppState> {
     // /api/podcasts/{id}/episodes
-    Router::new()
-        .route("/", get(list_episodes))
-        .route("/", post(save_episode))
-        .route("/subscribed", get(list_subscribed_episodes))
-        .route("/{episode_id}/unsubscribe", delete(remove_episode))
+    ApiRouter::new()
+        .api_route("/", get(list_episodes))
+        .api_route("/", post(save_episode))
+        .api_route("/subscribed", get(list_subscribed_episodes))
+        .api_route("/{episode_id}/unsubscribe", delete(remove_episode))
 }
 
 pub async fn list_episodes(

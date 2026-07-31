@@ -1,9 +1,10 @@
 use crate::utils::generate_episode_uuid;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use schemars::JsonSchema;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, sqlx::Type, Copy)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, sqlx::Type, Copy, JsonSchema)]
 #[sqlx(type_name = "TEXT", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 pub enum EpisodeState {
@@ -16,7 +17,7 @@ pub enum EpisodeState {
     Error,
 }
 
-#[derive(Debug, Serialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, PartialEq, Clone, JsonSchema)]
 pub struct Episode {
     pub id: Uuid,
     pub podcast_id: Uuid,
@@ -27,7 +28,7 @@ pub struct Episode {
     pub state: EpisodeState,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, JsonSchema)]
 pub struct EpisodeItem {
     pub guid: String,
     pub title: String,

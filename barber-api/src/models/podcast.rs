@@ -1,5 +1,6 @@
 use crate::utils::generate_podcast_uuid;
 use rss::Channel;
+use schemars::JsonSchema;
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -25,7 +26,7 @@ impl PodcastMetadata {
     }
 }
 
-#[derive(Debug, Serialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, PartialEq, Clone, JsonSchema)]
 pub struct Podcast {
     pub id: Uuid,
     pub title: String,

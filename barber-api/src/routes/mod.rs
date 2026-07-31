@@ -1,4 +1,6 @@
-use axum::{Router, routing::get, routing::post};
+use aide::axum::ApiRouter;
+use aide::axum::routing::{get, post};
+use crate::state::AppState;
 
 pub mod audio;
 mod episodes;
@@ -6,13 +8,12 @@ mod feeds;
 mod ping;
 mod podcast;
 
-use crate::state::AppState;
-
-pub fn api_router(state: AppState) -> Router {
-    Router::new()
-        .route("/ping", get(ping::handle_ping))
+pub fn api_router(state: AppState) -> ApiRouter {
+    // /api
+    ApiRouter::new()
+        .api_route("/ping", get(ping::handle_ping))
         // .route("/transcribe", post(audio::handle_episode_transcribe))
-        .route("/rss/list", post(feeds::list_episodes))
+        .api_route("/rss/list", post(feeds::list_episodes))
         .nest("/podcasts", podcast::podcasts_router())
         .nest("/podcasts/{podcast}/episodes", episodes::episodes_router())
         .with_state(state)

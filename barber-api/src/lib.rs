@@ -14,6 +14,9 @@ use crate::storage::download::{DownloadCore, DownloadManager, DownloadResult};
 use axum::Router;
 use std::path::PathBuf;
 use std::sync::Arc;
+use aide::axum::ApiRouter;
+use aide::openapi::OpenApi;
+use aide::scalar::Scalar;
 use tokio::sync::mpsc;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -167,12 +170,29 @@ pub async fn run() {
     );
 
     // Routes
-    let app = Router::new()
+    let mut openapi = OpenApi::default();
+    let app = ApiRouter::new()
         .nest("/api", routes::api_router(state))
+        .api_route("/docs", Scalar::new("/openapi.json").axum_route())
+        .finish_api(&mut openapi);
+
+    let openapi = Arc::new(openapi);
+    let app = Router::from(app)
+        .route(
+            "/openapi.json",
+            axum::routing::get({
+                let openapi = openapi.clone();
+                move || {
+                    let openapi = openapi.clone();
+                    async move { axum::Json((*openapi).clone()) }
+                }
+            }),
+        )
         .layer(TraceLayer::new_for_http());
+
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     tracing::info!("Server listening on {}", listener.local_addr().unwrap());
 
     // Start
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, Router::from(app)).await.unwrap();
 }
