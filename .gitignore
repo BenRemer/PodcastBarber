@@ -4,6 +4,7 @@
 .env
 .cache/
 downloads/
+data/
 .fastembed_cache/
 svs.mp3
 

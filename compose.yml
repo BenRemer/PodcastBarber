@@ -24,9 +24,11 @@ services:
       - "3000:3000"
     volumes:
       - ./downloads:/app/downloads
+      - ./data:/app/data
     depends_on:
       - whisper-sidecar
     environment:
+      - DATABASE_URL=sqlite:///app/data/podcasts.db
       - BASE_DOWNLOAD_PATH=/app/downloads
       - WHISPER_BASE_URL=http://whisper_sidecar:8000/v1
       - RUST_LOG=info
