@@ -1,27 +1,27 @@
-use std::path::PathBuf;
 use crate::common::context::TestContext;
 use crate::common::mocks;
+use crate::common::mocks::editor::MockEditor;
 use barber_api::models::episode::{Episode, EpisodeState};
 use barber_api::models::podcast::Podcast;
 use barber_api::processors::coordinator::{AudioCoordinator, PipelineEvent};
 use barber_api::services::detection::DetectionService;
+use barber_api::services::editor::{EditorCore, EditorService};
 use barber_api::services::episode::EpisodeService;
 use barber_api::services::podcast::PodcastService;
 use barber_api::services::rss::RSSFeedService;
 use barber_api::services::transcribe::TranscribeService;
 use barber_api::services::transcribe::core::TranscribeCore;
 use barber_api::storage::download::{DownloadCore, DownloadManager, Downloader};
-use barber_api::services::editor::{EditorCore, EditorService};
 use barber_api::storage::repository::detection::DetectionRepository;
 use barber_api::storage::repository::episode::EpisodeRepository;
 use barber_api::storage::repository::podcast::PodcastRepository;
 use barber_api::storage::repository::transcript::TranscriptRepository;
 use barber_api::utils::{generate_episode_uuid, generate_podcast_uuid};
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 use wiremock::MockServer;
-use crate::common::mocks::editor::MockEditor;
 
 pub struct TestContextBuilder {
     start_workers: bool,
@@ -88,11 +88,9 @@ impl TestContextBuilder {
         let (detect_tx, detect_rx) = mpsc::channel(100);
         let (edit_tx, edit_rx) = mpsc::channel(100);
 
-
-        let download_core = self.download_core.unwrap_or(Arc::new(DownloadCore::new(
-            base_dir.clone(),
-            http.clone(),
-        )));
+        let download_core = self
+            .download_core
+            .unwrap_or(Arc::new(DownloadCore::new(base_dir.clone(), http.clone())));
         let (download, download_worker) = DownloadManager::new(
             download_core,
             download_tx,

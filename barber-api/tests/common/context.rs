@@ -5,6 +5,7 @@ use wiremock::MockServer;
 
 use barber_api::processors::coordinator::AudioCoordinator;
 
+use barber_api::services::editor::EditorWorker;
 use barber_api::services::episode::EpisodeService;
 use barber_api::services::podcast::PodcastService;
 use barber_api::services::rss::RSSFeedService;
@@ -13,7 +14,6 @@ use barber_api::services::{
     transcribe::TranscribeWorker,
 };
 use barber_api::storage::download::DownloadWorker;
-use barber_api::services::editor::EditorWorker;
 
 use crate::common::builder::TestContextBuilder;
 use barber_api::storage::repository::detection::DetectionRepository;

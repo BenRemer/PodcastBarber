@@ -1,5 +1,5 @@
-use aide::generate::GenContext;
 use aide::OperationOutput;
+use aide::generate::GenContext;
 use aide::openapi::Response as OpenApiResponse;
 use axum::{
     Json,
@@ -62,22 +62,34 @@ impl OperationOutput for AppError {
         _operation: &mut aide::openapi::Operation,
     ) -> Vec<(Option<u16>, OpenApiResponse)> {
         vec![
-            (Some(400), OpenApiResponse {
-                description: "Bad Request".into(),
-                ..Default::default()
-            }),
-            (Some(404), OpenApiResponse {
-                description: "Not Found".into(),
-                ..Default::default()
-            }),
-            (Some(500), OpenApiResponse {
-                description: "Internal Server Error".into(),
-                ..Default::default()
-            }),
-            (Some(503), OpenApiResponse {
-                description: "Service Unavailable".into(),
-                ..Default::default()
-            }),
+            (
+                Some(400),
+                OpenApiResponse {
+                    description: "Bad Request".into(),
+                    ..Default::default()
+                },
+            ),
+            (
+                Some(404),
+                OpenApiResponse {
+                    description: "Not Found".into(),
+                    ..Default::default()
+                },
+            ),
+            (
+                Some(500),
+                OpenApiResponse {
+                    description: "Internal Server Error".into(),
+                    ..Default::default()
+                },
+            ),
+            (
+                Some(503),
+                OpenApiResponse {
+                    description: "Service Unavailable".into(),
+                    ..Default::default()
+                },
+            ),
         ]
     }
 }

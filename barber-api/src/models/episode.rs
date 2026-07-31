@@ -1,8 +1,9 @@
 use crate::utils::generate_episode_uuid;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use schemars::JsonSchema;
 use uuid::Uuid;
+use crate::services::detection::ProcessedSegment;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, sqlx::Type, Copy, JsonSchema)]
 #[sqlx(type_name = "TEXT", rename_all = "lowercase")]
@@ -21,15 +22,16 @@ pub enum EpisodeState {
 pub struct Episode {
     pub id: Uuid,
     pub podcast_id: Uuid,
-    pub guid: String,
+    pub guid: String, // todo rename to feedEpisodeId or similar
     pub title: String,
-    pub audio_url: String,
+    pub audio_url: String, // todo rename to original or reset to new path after edit
     pub local_file_path: Option<PathBuf>,
     pub state: EpisodeState,
 }
 
 #[derive(Serialize, Clone, JsonSchema)]
 pub struct EpisodeItem {
+    // todo this needs a better name
     pub guid: String,
     pub title: String,
     pub audio_url: String,
@@ -48,4 +50,14 @@ impl EpisodeItem {
             state: EpisodeState::Pending,
         }
     }
+}
+
+#[derive(Serialize, Clone, JsonSchema)]
+pub struct EpisodeInfo {
+    pub id: Uuid,
+    pub guid: String,
+    pub title: String,
+    pub status: EpisodeState,
+    pub detections: Vec<ProcessedSegment>,
+    pub path: PathBuf,
 }

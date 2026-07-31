@@ -156,10 +156,20 @@ impl Editor for EditorCore {
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             tracing::error!("FFmpeg failed: {}", stderr);
+            // clean up failed garbage
+            let _ = fs::remove_file(&output_path).await;
             return Err(AppError::InternalServerError(
                 "FFmpeg processing failed".into(),
             ));
         }
+
+        // overwrite existing file with new edited file
+        fs::rename(&output_path, episode_path).await.map_err(|e| {
+            AppError::InternalServerError(
+                format!("Failed to overwrite original file: {}", e).into(),
+            )
+        })?;
+        tracing::info!("Overwrote original file");
 
         Ok(output_path)
     }
@@ -168,15 +178,39 @@ impl Editor for EditorCore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_calculate_keep_blocks() {
         // Create a fake transcript with ads and non-ads mixed up (out of chronological order)
         let segments = vec![
-            ProcessedSegment { start_time: 20.0, end_time: 30.0, text: "".into(), ad_score: 0, is_ad: false }, // Safe
-            ProcessedSegment { start_time: 10.0, end_time: 20.0, text: "".into(), ad_score: 100, is_ad: true }, // AD!
-            ProcessedSegment { start_time: 0.0, end_time: 10.0, text: "".into(), ad_score: 0, is_ad: false }, // Safe
-            ProcessedSegment { start_time: 30.0, end_time: 40.0, text: "".into(), ad_score: 0, is_ad: false }, // Safe
+            ProcessedSegment {
+                start_time: 20.0,
+                end_time: 30.0,
+                text: "".into(),
+                ad_score: 0,
+                is_ad: false,
+            }, // Safe
+            ProcessedSegment {
+                start_time: 10.0,
+                end_time: 20.0,
+                text: "".into(),
+                ad_score: 100,
+                is_ad: true,
+            }, // AD!
+            ProcessedSegment {
+                start_time: 0.0,
+                end_time: 10.0,
+                text: "".into(),
+                ad_score: 0,
+                is_ad: false,
+            }, // Safe
+            ProcessedSegment {
+                start_time: 30.0,
+                end_time: 40.0,
+                text: "".into(),
+                ad_score: 0,
+                is_ad: false,
+            }, // Safe
         ];
 
         // Run the private function
@@ -194,9 +228,13 @@ mod tests {
 
     #[test]
     fn test_calculate_keep_blocks_all_ads() {
-        let segments = vec![
-            ProcessedSegment { start_time: 0.0, end_time: 10.0, text: "".into(), ad_score: 100, is_ad: true },
-        ];
+        let segments = vec![ProcessedSegment {
+            start_time: 0.0,
+            end_time: 10.0,
+            text: "".into(),
+            ad_score: 100,
+            is_ad: true,
+        }];
         let keep_blocks = EditorCore::calculate_keep_blocks(&segments);
         assert!(keep_blocks.is_empty());
     }

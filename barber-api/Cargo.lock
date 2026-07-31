@@ -357,6 +357,7 @@ dependencies = [
  "fastembed",
  "hex",
  "infer",
+ "rand 0.9.4",
  "reqwest 0.13.4",
  "rss",
  "schemars 0.9.0",

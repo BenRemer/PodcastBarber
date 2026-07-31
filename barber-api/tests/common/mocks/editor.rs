@@ -1,8 +1,8 @@
 use async_trait::async_trait;
-use std::path::{Path, PathBuf};
 use barber_api::error::AppError;
 use barber_api::services::detection::ProcessedSegment;
 use barber_api::services::editor::Editor;
+use std::path::{Path, PathBuf};
 
 pub struct MockEditor;
 

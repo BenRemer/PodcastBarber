@@ -44,7 +44,7 @@ impl EpisodeService {
 
         // Drop the job into the Manager's queue.
         let job = DownloadJob {
-            tracking_id: saved_episode.id.clone(),
+            id: saved_episode.id.clone(),
             audio_url: saved_episode.audio_url.clone(),
             folder_name: podcast.id.to_string(),
             guid: saved_episode.guid.clone(),

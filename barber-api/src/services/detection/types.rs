@@ -1,3 +1,5 @@
+use schemars::JsonSchema;
+use serde::Serialize;
 use crate::error::AppError;
 use uuid::Uuid;
 
@@ -12,7 +14,7 @@ pub struct DetectionResult {
     pub error: Option<AppError>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct ProcessedSegment {
     pub start_time: f64,
     pub end_time: f64,

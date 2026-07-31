@@ -1,6 +1,6 @@
+use crate::state::AppState;
 use aide::axum::ApiRouter;
 use aide::axum::routing::{get, post};
-use crate::state::AppState;
 
 pub mod audio;
 mod episodes;

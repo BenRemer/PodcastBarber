@@ -1,12 +1,13 @@
+use crate::models::api::{EpisodeItem, EpisodeQuery, EpisodeRequest};
+use crate::models::episode::{Episode, EpisodeInfo};
+use crate::{error::AppError, state::AppState};
 use aide::axum::ApiRouter;
 use aide::axum::routing::{delete, get, post};
-use crate::models::api::{EpisodeItem, EpisodeQuery, EpisodeRequest};
-use crate::models::episode::Episode;
-use crate::{error::AppError, state::AppState};
+use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::{Json, extract::State};
-use axum::extract::{Path, Query};
 use uuid::Uuid;
+use crate::services::detection::Detection;
 
 pub fn episodes_router() -> ApiRouter<AppState> {
     // /api/podcasts/{id}/episodes
@@ -15,6 +16,7 @@ pub fn episodes_router() -> ApiRouter<AppState> {
         .api_route("/", post(save_episode))
         .api_route("/subscribed", get(list_subscribed_episodes))
         .api_route("/{episode_id}/unsubscribe", delete(remove_episode))
+        .api_route("/{episode_id}/info", get(episode_info))
 }
 
 pub async fn list_episodes(
@@ -125,4 +127,53 @@ pub async fn remove_episode(
     state.episode_service.delete_episode(episode).await?;
     // Returns 204 No Content
     Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn episode_info(
+    State(state): State<AppState>,
+    Path((podcast_id, episode_id)): Path<(Uuid, Uuid)>,
+) -> Result<(StatusCode, Json<EpisodeInfo>), AppError> {
+    tracing::info!(
+        "Getting episode info of {} with id {}",
+        podcast_id,
+        episode_id
+    );
+
+    if !state
+        .podcast_service
+        .is_subscribed_by_id(&podcast_id)
+        .await?
+    {
+        tracing::error!("Podcast is missing from the database");
+        return Err(AppError::NotFound);
+    }
+
+    let episode = state
+        .episode_service
+        .get(&episode_id)
+        .await?
+        .ok_or_else(|| {
+            tracing::error!("Episode is missing from the database");
+            AppError::NotFound
+        })?;
+
+    let detection = state
+        .detection_service
+        .list_detections(&episode_id)
+        .await
+        .unwrap_or(Detection {
+            episode_id,
+            segments: vec![],
+        });
+
+    let info = EpisodeInfo {
+        id: episode.id,
+        guid: episode.guid,
+        title: episode.title,
+        status: episode.state,
+        detections: detection.segments,
+        path: episode.local_file_path.unwrap(),
+    };
+
+    Ok((StatusCode::OK, Json(info)))
 }

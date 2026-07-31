@@ -1,8 +1,8 @@
-use aide::axum::ApiRouter;
-use aide::axum::routing::{get, post};
 use crate::models::api::PodcastRequest;
 use crate::models::podcast::Podcast;
 use crate::{error::AppError, state::AppState};
+use aide::axum::ApiRouter;
+use aide::axum::routing::{get, post};
 use axum::http::StatusCode;
 use axum::{Json, extract::State};
 

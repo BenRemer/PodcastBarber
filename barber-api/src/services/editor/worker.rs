@@ -56,13 +56,13 @@ impl EditorWorker {
 
 #[cfg(test)]
 mod tests {
-    use std::path::{Path, PathBuf};
-    use std::time::Duration;
-    use async_trait::async_trait;
-    use uuid::Uuid;
+    use super::*;
     use crate::error::AppError;
     use crate::services::detection::ProcessedSegment;
-    use super::*;
+    use async_trait::async_trait;
+    use std::path::{Path, PathBuf};
+    use std::time::Duration;
+    use uuid::Uuid;
 
     struct MockEditor;
 
@@ -111,7 +111,10 @@ mod tests {
         drop(job_tx);
 
         // Await the result from the callback channel
-        let result = result_rx.recv().await.expect("Worker dropped the result channel");
+        let result = result_rx
+            .recv()
+            .await
+            .expect("Worker dropped the result channel");
 
         // Verify we got a Success event with the correct ID and mocked path
         match result {

@@ -30,7 +30,7 @@ impl DownloadManager {
     }
 
     pub async fn enqueue_download(&self, job: DownloadJob) -> Result<(), AppError> {
-        tracing::info!("Enqueueing downloaded job {}", job.tracking_id);
+        tracing::info!("Enqueueing downloaded job {}", job.id);
         self.job_queue.send(job).await.map_err(|e| {
             tracing::error!("Download queue rejected job: {}", e);
             AppError::InternalServerError("Download queue is full or offline".into())
@@ -48,7 +48,7 @@ mod tests {
 
     fn create_dummy_job() -> DownloadJob {
         DownloadJob {
-            tracking_id: Uuid::new_v4(),
+            id: Uuid::new_v4(),
             audio_url: "http://example.com/audio.mp3".to_string(),
             folder_name: "Test Podcast".to_string(),
             guid: "test-guid-123".to_string(),
@@ -62,7 +62,7 @@ mod tests {
         let core = Arc::new(DownloadCore::new(PathBuf::from("/tmp"), client));
         let (manager, mut worker) = DownloadManager::new(core, callback_tx, 10, 5);
         let job = create_dummy_job();
-        let expected_id = job.tracking_id;
+        let expected_id = job.id;
         let result = manager.enqueue_download(job).await;
         assert!(
             result.is_ok(),
@@ -73,7 +73,7 @@ mod tests {
             .recv()
             .await
             .expect("Worker should have received a job");
-        assert_eq!(received_job.tracking_id, expected_id);
+        assert_eq!(received_job.id, expected_id);
     }
 
     #[tokio::test]

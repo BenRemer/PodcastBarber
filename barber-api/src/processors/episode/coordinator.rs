@@ -77,8 +77,8 @@ impl AudioCoordinator {
                 // Episode Download Finished
                 Some(dl_result) = self.download_callback.recv() => {
                     tracing::info!("Download of episode {} finished, \
-                        sending to get transcribed.", dl_result.tracking_id);
-                    let id = dl_result.tracking_id;
+                        sending to get transcribed.", dl_result.id);
+                    let id = dl_result.id;
                     self.handle_after_download(dl_result).await;
                     if let Some(watcher) = &self.event_sender {
                         let _ = watcher.send(PipelineEvent::DownloadComplete(id)).await;
@@ -142,9 +142,9 @@ impl AudioCoordinator {
 
     /// Set db to downloaded and start transcription
     async fn handle_after_download(&self, dl_result: DownloadResult) {
-        let Ok(Some(mut episode)) = self.episode_repository.get(&dl_result.tracking_id).await
+        let Ok(Some(mut episode)) = self.episode_repository.get(&dl_result.id).await
         else {
-            tracing::info!("Episode {} not found.", dl_result.tracking_id);
+            tracing::info!("Episode {} not found.", dl_result.id);
             return;
         };
 
@@ -153,7 +153,7 @@ impl AudioCoordinator {
             Err(err) => {
                 tracing::error!(
                     "Download failed for episode {}: {:?}",
-                    dl_result.tracking_id,
+                    dl_result.id,
                     err
                 );
                 episode.state = EpisodeState::Error;
@@ -162,7 +162,7 @@ impl AudioCoordinator {
             }
         };
 
-        tracing::info!("Download success for episode {}", dl_result.tracking_id);
+        tracing::info!("Download success for episode {}", dl_result.id);
         episode.state = EpisodeState::Downloaded;
         episode.local_file_path = Some(path.to_owned());
         let _ = self.episode_repository.upsert(episode).await;
@@ -170,7 +170,7 @@ impl AudioCoordinator {
         let _ = self
             .transcribe_service
             .transcribe_audio(TranscribeJob {
-                episode_id: dl_result.tracking_id,
+                episode_id: dl_result.id,
                 file_path: path,
             })
             .await;
@@ -210,7 +210,7 @@ impl AudioCoordinator {
         }
     }
 
-    // Detection finished now send to editor
+    /// Set DB to detected and send to editor
     async fn handle_after_detection(&self, detection_result: &DetectionResult) {
         let episode_id = &detection_result.episode_id;
         if detection_result.error.is_some() {

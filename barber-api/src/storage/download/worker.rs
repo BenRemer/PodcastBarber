@@ -26,12 +26,12 @@ impl DownloadWorker {
             let permit = semaphore.clone().acquire_owned().await.unwrap();
             tokio::spawn(async move {
                 let status = core_clone
-                    .download_to_path(&job.audio_url, &job.folder_name, &job.guid)
+                    .download_to_path(&job.audio_url, &job.folder_name, &job.id.to_string())
                     .await;
 
                 if let Err(e) = callback_clone
                     .send(DownloadResult {
-                        tracking_id: job.tracking_id,
+                        id: job.id,
                         status,
                     })
                     .await
@@ -91,7 +91,7 @@ mod tests {
 
         for i in 0..concurrency_limit {
             let job = DownloadJob {
-                tracking_id: Uuid::new_v4(),
+                id: Uuid::new_v4(),
                 audio_url: format!("http://test.com/{}", i),
                 folder_name: "test_folder".to_string(),
                 guid: format!("guid-{}", i),

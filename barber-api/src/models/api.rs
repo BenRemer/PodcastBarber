@@ -1,5 +1,5 @@
-use schemars::JsonSchema;
 pub(crate) use crate::models::episode::EpisodeItem;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, JsonSchema)]

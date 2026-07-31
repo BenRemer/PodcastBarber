@@ -11,12 +11,12 @@ use crate::services::transcribe::{TranscribeCore, TranscribeResult, TranscribeSe
 use crate::state::AppState;
 use crate::storage::database::Database;
 use crate::storage::download::{DownloadCore, DownloadManager, DownloadResult};
-use axum::Router;
-use std::path::PathBuf;
-use std::sync::Arc;
 use aide::axum::ApiRouter;
 use aide::openapi::OpenApi;
 use aide::scalar::Scalar;
+use axum::Router;
+use std::path::PathBuf;
+use std::sync::Arc;
 use tokio::sync::mpsc;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
